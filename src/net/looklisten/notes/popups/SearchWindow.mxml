@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute" 
+	width="600" height="400" 
+	title="{bundle.getString('resources','search')}" 
+	showCloseButton="true" 
+	close="{PopUpManager.removePopUp(this)}"
+	creationComplete="init()">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.resources.IResourceManager;
+			import net.looklisten.notes.components.NotesDisplay;
+			import net.looklisten.notes.soap.Category;
+			import mx.managers.PopUpManager;
+			import mx.collections.ArrayCollection;
+			import mx.events.ListEvent;
+			import net.looklisten.notes.model.NotesModel;
+			import net.looklisten.notes.soap.Note;
+			import mx.binding.utils.BindingUtils;
+			
+			[Bindable]
+			private var _notesModel:NotesModel = NotesModel.getInstance();
+			
+			public var view:NotesDisplay;
+			
+			[Bindable]
+			public var bundle:IResourceManager;
+			
+			 /**
+		    * Updates List of notes so highglighted row is visible
+		    * (i.e. when manually selecting a note or using prev/next)
+		    */
+		    private function onSelectNote(selectedItem:Note):void
+		    {
+		    	if(selectedItem!=null)
+		    		labelList.scrollToIndex(labelList.selectedIndex);	
+		    }
+		    
+		    
+		    /**
+		    * Handles selecting a row in the List control
+		    */
+		    private function showNote(event:ListEvent):void
+		    {
+		    	if((event.target as List).selectedItem==null) return;
+		    	var note:Note = (event.target as List).selectedItem as Note;
+		    	view.showNote(view.getNoteDisplayByNote(note));
+		    }
+		    
+		    private function getNoteLabel(note:Note):String
+		    {
+		    	var delimiter:String = _notesModel.categoriesIndexed[note.category_id]!=null && 
+		    							(_notesModel.categoriesIndexed[note.category_id] as Category).delimit?"/":"";
+				return note.content!=""?note.content.split("\r\n").join(" "+delimiter+" "):"[no label]";
+		    }
+		    
+		    private function onSetNotes(value:ArrayCollection):void
+		    {
+		    	labelList.dataProvider = new ArrayCollection(value.source);
+		    	(labelList.dataProvider as ArrayCollection).filterFunction = filterBySearch;
+		    }
+		    
+		    private function filterBySearch(item:Object):Boolean
+		    {
+		    	return (item as Note).content.toLowerCase().indexOf(searchText.text.toLowerCase())>-1;
+		    }
+		    
+		    private function init():void
+		    {
+		    	BindingUtils.bindSetter(onSelectNote,labelList,"selectedItem");
+		    	BindingUtils.bindSetter(onSetNotes,_notesModel,"notesFiltered");
+		    }
+		]]>
+	</mx:Script>
+	
+	<mx:VBox width="100%" height="100%">
+	
+		<mx:TextInput 
+			id="searchText" 
+			change="{(labelList.dataProvider as ArrayCollection).refresh()}" />
+		
+		<mx:List
+			id="labelList" width="100%" height="100%"
+			itemClick="showNote(event)" 
+			labelFunction="getNoteLabel"
+			selectedIndex="{_notesModel.maximizedNote!=null?
+							_notesModel.notesFiltered.getItemIndex(_notesModel.maximizedNote.note):-1}" />
+						
+	</mx:VBox>
+	
+</mx:TitleWindow>

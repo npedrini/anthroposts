@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Text xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="100%" selectable="false" textAlign="right" 
+	creationComplete="init()">
+		
+	<mx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+			private const MIN_FONT_SIZE:int = 7;
+			private const MAX_FONT_SIZE:int = 40;
+			private const MULTIPLIER:int = 2;
+			
+			private function onSetData(value:Object):void
+			{
+				if(value==null)return;
+				this.text=value.word;
+				this.setStyle("fontSize",
+						Math.min(MAX_FONT_SIZE,MIN_FONT_SIZE+value.notes.length*MULTIPLIER));
+			}
+			private function init():void
+			{
+				BindingUtils.bindSetter(onSetData,this,"data");
+			}
+		]]>
+	</mx:Script>
+	
+</mx:Text>

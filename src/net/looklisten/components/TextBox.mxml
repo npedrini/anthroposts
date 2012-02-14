@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	percentWidth="100" percentHeight="100" 
+	paddingLeft="{padding}" paddingRight="{padding}" paddingTop="{padding}" paddingBottom="{padding}" 
+	horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.GraphicsUtil;
+			
+			[Bindable]
+			public function set backgroundColor(value:int):void{
+				_backgroundColor = value;
+				invalidateProperties();
+			}
+			public function get backgroundColor():int{
+				return _backgroundColor;
+			}
+			private var _backgroundColor:int = 0x000000;
+			
+			[Bindable]
+			public var textStyleName:String = null;
+			
+			[Bindable]
+			public function set borderColor(value:int):void{
+				_borderColor = value;
+				invalidateProperties();
+			}
+			public function get borderColor():int{
+				return _borderColor;
+			}
+			private var _borderColor:int = 0x000000;
+			
+			[Bindable]
+			public function set borderThickness(value:int):void{
+				_borderThickness = value;
+				invalidateProperties();
+			}
+			public function get borderThickness():int{
+				return _borderThickness;
+			}
+			private var _borderThickness:int = -1;
+			
+			[Bindable]
+			public function set cornerRadii(value:Object):void{
+				_cornerRadii = value;
+				invalidateProperties();
+			}
+			public function get cornerRadii():Object{
+				return _cornerRadii;
+			}
+			private var _cornerRadii:Object = {tl:0,tr:0,bl:0,br:0};
+			
+			[Bindable]
+			public function set content(value:String):void{
+				_content = value;
+				invalidateDisplayList();
+			}
+			public function get content():String{
+				return _content;
+			}
+			private var _content:String = "";
+			
+			[Bindable]
+			public var padding:int = 0;
+			
+			override protected function commitProperties():void{
+				
+				graphics.clear();
+				graphics.beginFill(backgroundColor,1);
+				if(borderThickness>=0)
+			   		graphics.lineStyle(borderThickness,borderColor,1,true,LineScaleMode.NORMAL,CapsStyle.SQUARE,JointStyle.MITER);
+			   	GraphicsUtil.drawRoundRectComplex(graphics, 0, 0, width, height, cornerRadii.tl, cornerRadii.tr, cornerRadii.bl, cornerRadii.br);
+			   	graphics.endFill();
+
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Text id="text" 
+		width="100%"
+		htmlText="{content}" 
+		styleName="{textStyleName}"
+		selectable="true" />
+
+</mx:HBox>

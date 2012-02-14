@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" height="155" width="58" clipContent="false">
+<mx:Script>
+	<![CDATA[
+		
+		[Embed(source="assets/images/shoe_prints/sneaker_1.png")]
+		public static const STYLE_1:Class;
+		[Embed(source="assets/images/shoe_prints/sneaker_2.png")]
+		public static const STYLE_2:Class;
+		[Embed(source="assets/images/shoe_prints/sneaker_3.png")]
+		public static const STYLE_3:Class;
+		[Embed(source="assets/images/shoe_prints/sneaker_4.png")]
+		public static const STYLE_4:Class;
+		
+		public static const PRINTS:Array = [STYLE_1,STYLE_2,STYLE_3,STYLE_4];
+		
+		[Bindable]
+		public var style:Class;
+		
+	]]>
+</mx:Script>
+
+<mx:Image id="img" source="{style}" x="{-img.width/2}" y="{-img.height/2}" />
+
+</mx:Canvas>

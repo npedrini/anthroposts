@@ -1,0 +1,251 @@
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+@font-face {
+    src: url("assets/fonts/Greyscale Basic Bold.ttf");
+    fontFamily: SansSerif;
+    fontWeight: "bold";
+	embedAsCFF: false;
+}
+
+/*
+@font-face {
+	src: url("assets/fonts/P22 Cezanne.ttf");
+	fontFamily: HandWriting;
+	fontWeight: "bold";
+	embedAsCFF: false;
+}
+*/
+
+mx|Application {
+	backgroundColor: #333333;
+}
+
+mx|List, mx|ComboBox, mx|Button, mx|TitleWindow, mx|TextInput, mx|ToolTip, mx|CheckBox {
+	fontFamily: SansSerif;
+	fontWeight: "bold";
+	color: #FFFFFF;
+	fontSize:9px;
+}
+
+mx|ComboBox, mx|Button {
+	borderColor: #FFFFFF;
+	borderThickness: 2px;
+	paddingTop: 2px;
+}
+
+mx|ProgressBar {
+	borderColor: #FFFFFF;
+	barColor: #FFFFFF;
+	color: #FFFFFF;
+	fontFamily: SansSerif;
+	fontSize: 12px;
+	textAlign: "center";
+	trackColors: #333333,#333333;
+}
+
+mx|List {
+	textRollOverColor: #8FF404;
+	rollOverColor: #333;
+	selectionColor: #333333;
+	textSelectedColor: #8FF404;
+	backgroundAlpha: 0; 
+	borderThickness: 0;
+	fontSize: 11px;
+}
+
+mx|TitleWindow {
+	fontSize: 11px;
+	fontWeight: "bold";
+	backgroundColor: #000000;
+	backgroundAlpha: .9;
+	borderThickness: 1px;
+	borderColor: #FFFFFF;
+	borderStyle: "solid";
+	titleStyleName: "titleWindowHeader";
+	modalTransparencyColor: #333333;
+	modalTransparency: .8;
+	modalTransparencyBlur: 1;
+	paddingLeft: 5px;
+	paddingTop: 5px;
+	paddingRight: 5px;
+	paddingBottom: 5px;
+	cornerRadius: 10px;
+	roundedBottomCorners: true;
+	closeButtonSkin: Embed('assets/images/buttons/close.png');
+	closeButtonUpSkin: Embed('assets/images/buttons/close.png');
+	closeButtonOverSkin: Embed('assets/images/buttons/close_ovr.png');
+	closeButtonDownSkin: Embed('assets/images/buttons/close_ovr.png');
+}
+
+mx|TextInput {
+	backgroundColor: #333333;
+	focusThickness: 0px;
+	borderThickness: 1px;
+}
+
+mx|ComboBox {
+	backgroundAlpha: 1; 
+}
+
+mx|Button {
+	fillColors: #000000,#000000;
+	highlightAlphas: 0,0;
+	focusThickness: 0;
+	cornerRadius:0;
+}
+
+mx|ToolTip {
+	borderStyle: "outset";
+	backgroundColor: #999999;
+	fontSize: 12px;
+	leading: -3px;
+}
+
+.searchButton {
+	color: #000000;
+	highlightAlphas:0,0;
+	fillAlphas:0,0;
+	borderColor: #000000;
+	paddingLeft:0px;
+	paddingTop:0px;
+	paddingRight:0px;
+	paddingBottom:0px;
+	fontSize:9px;
+}
+
+.viewLinkButtonBar {
+	color: #FFFFFF;
+	paddingTop:0px;
+	paddingBottom:0px;
+	horizontalGap: 2px;
+	buttonStyleName: "viewLinkButton";
+	selectedButtonTextStyleName: "viewLinkButtonSelectedText";
+}
+.viewLinkButtonSelectedText {
+	color: #8FF404;	
+}
+.viewLinkButton {
+	fontSize: 13px;
+	borderColor: #000000;
+	textRollOverColor: #8FF404;
+	textSelectedColor: #8FF404;
+	skin: ClassReference(null);
+	upSkin: ClassReference(null);
+}
+.setLangButtonBar {
+	color: #666666;
+	paddingTop:0px;
+	paddingBottom:0px;
+	horizontalGap: 0px;
+	buttonStyleName: "setLangButton";
+	selectedButtonTextStyleName: "setLangButtonSelectedText";
+}
+.setLangButton {
+	color: #666666;
+	fontSize: 9px;
+	borderColor: #666666;
+	textRollOverColor: #000000;
+	textSelectedColor: #000000;
+	paddingLeft: 0;
+	paddingRight: 0;
+	paddingTop: 0;
+	paddingBottom: 0;
+	skin: ClassReference(null);
+	upSkin: ClassReference(null);
+}
+.setLangButtonSelectedText {
+	color: #000000;	
+}
+mx|ComboBox {
+	dropDownStyleName: "comboDropDown";
+}
+
+.comboDropDown {
+	fontFamily: SansSerif;
+	fontWeight: "bold";
+	backgroundColor: #000000;
+	color: #FFFFFF;
+	backgroundAlpha: 1; 
+}
+
+.filterSelect {
+	backgroundColor: #333333;
+}
+
+.titleWindowHeader {
+	color: #FFFFFF;
+	fontSize: 16px;	
+	fontFamily: SansSerif;
+	fontWeight: "bold";
+}
+
+.connectionLabel {
+	fontFamily: SansSerif;
+	fontSize: 30;
+	color: #FFFFFF;
+	backgroundAlpha:0;
+	borderThickness: 0;
+	textAlign: center;
+	paddingLeft: 0;
+	paddingTop: 0;
+	paddingRight: 0;
+	paddingBottom: 0;
+	fontWeight: "bold";
+}
+
+.noteHeader {
+	backgroundColor: #FFFFFF;
+	padding: 1;
+}
+.noteFooter {
+	backgroundColor: #000000;
+	borderColor: #FFFFFF;
+	borderThickness: 4;
+}
+.noteHeaderText {
+	color: #333333;
+	fontFamily: SansSerif;
+	fontSize: 10;
+	fontWeight: "bold";
+}
+.noteFooterText {
+	color: #FFFFFF;
+	fontFamily: SansSerif;
+	fontSize: 14;
+	fontWeight: "bold";
+}
+.noteCountText {
+	color: #333333;
+	fontFamily: SansSerif;
+	fontSize: 12;
+	fontWeight: "bold";
+}
+
+.filterText {
+	color: #FFFFFF;
+	fontFamily: SansSerif;
+	fontSize: 9;
+	fontWeight: "bold";
+	paddingLeft:0px;
+	paddingright:0px;
+	paddingTop:0px;
+	paddingBottom:0px;
+}
+.sortLinks {
+	separatorSkin: ClassReference(null);
+	selectionColor: #8FF404;	
+}
+.linkButton {
+	color: #FFFFFF;
+	textRollOverColor: #8FF404;
+	textSelectedColor: #8FF404;
+	fontFamily: SansSerif;
+	fontSize: 12px;
+	fontWeight:"bold";
+	skin: ClassReference(null);
+	paddingLeft: 1;
+	paddingRight: 1;
+	paddingTop: 1;
+	paddingBottom: 1;
+	cornerRadius:0;
+}

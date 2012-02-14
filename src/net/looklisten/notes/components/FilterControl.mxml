@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="270" height="195" 
+	backgroundImage="@Embed('assets/images/filters_bg.png')"
+	paddingLeft="10" paddingTop="14" paddingRight="5" paddingBottom="5" 
+	verticalGap="8" moveEffect="{tween}"
+	backgroundAttachment="fixed" 
+	creationComplete="init()">
+	
+	<mx:Metadata>
+		[Event(name="setLanguage",type="net.looklisten.notes.events.ApplicationEvent")]
+		[Event(name="showHelp",type="net.looklisten.notes.events.ApplicationEvent")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+			import net.looklisten.notes.soap.Location;
+			import net.looklisten.notes.events.ApplicationEvent;
+			import mx.resources.ResourceBundle;
+			import mx.resources.IResourceManager;
+			import net.looklisten.utils.StringUtils;
+			import mx.managers.PopUpManager;
+			import net.looklisten.notes.popups.SearchWindow;
+			import mx.controls.List;
+			import mx.effects.easing.Exponential;
+			import mx.effects.easing.Sine;
+			import mx.effects.easing.Bounce;
+			import net.looklisten.notes.soap.Note;
+			import mx.events.ItemClickEvent;
+			import mx.controls.LinkBar;
+			import mx.collections.ArrayCollection;
+			import mx.collections.SortField;
+			import net.looklisten.notes.controllers.NotesController;
+			import mx.events.ListEvent;
+			import net.looklisten.notes.soap.CategoryArray;
+			import net.looklisten.notes.soap.TypeArray;
+			import net.looklisten.notes.soap.LocationArray;
+			import mx.binding.utils.BindingUtils;
+			import net.looklisten.notes.model.NotesModel;
+			
+			[Bindable]
+			private var _notesModel:NotesModel = NotesModel.getInstance();
+			[Bindable]
+			private var _notesController:NotesController = NotesController.getInstance();
+			[Bindable]
+			public var maximized:Boolean = false;
+			
+			[Bindable]
+			private var ALL_CATEGORIES:String
+			[Bindable]
+			private var ALL_TYPES:String;
+			[Bindable]
+			private var ALL_LOCATIONS:String;
+			
+			public var view:NotesDisplay;
+		    
+		    [Bindable]
+		    public var languages:ArrayCollection;
+		    
+			/**
+		    * Handler for category/type select.
+		    */
+		    private function onFiltersChange(event:ListEvent):void
+		    {
+		    	//	hide current note
+		    	//	TODO: only hide if not in new results?
+		    	if(_notesModel.maximizedNote!=null)
+		    		view.hideNote(_notesModel.maximizedNote);
+		    	
+		    	//	update selected category id
+		    	_notesModel.filterCategoryId = categorySelect.selectedItem!=null?
+											   categorySelect.selectedItem.id:-1;
+				//	updated selected type id
+				_notesModel.filterTypeId 	= typeSelect.selectedItem!=null?
+											   typeSelect.selectedItem.id:-1;
+				
+				//	updated selected type id
+				_notesModel.filterLocationId = locationSelect.selectedItem!=null?
+											   locationSelect.selectedItem.id:-1;
+				
+				//	filter the notes
+				_notesController.filterNotes();
+		    }
+		    
+		    private function onSetCategories(value:CategoryArray):void
+		    {
+		    	if(value==null) return;
+		    	categorySelect.dataProvider.addItemAt( {title:ALL_CATEGORIES}, 0);
+				categorySelect.selectedIndex=0;
+		    }
+		    
+		    private function onSetTypes(value:TypeArray):void
+		    {
+		    	if(value==null) return;
+		    	
+		    	typeSelect.dataProvider.addItemAt( {title:ALL_TYPES}, 0);
+				typeSelect.selectedIndex=0;
+		    }
+		    
+		    private function onSetLocations(value:LocationArray):void
+		    {
+		    	if(value==null) return;
+		    	locationSelect.dataProvider.addItemAt( {city:ALL_LOCATIONS}, 0);
+				locationSelect.selectedIndex=0;
+		    }
+		    
+		    private function getLocationLabel(loc:Object):String
+		    {
+		    	var str:String = "";
+		    	if(!(loc is Location) && loc.title!=null) return loc.title;
+		    	if(loc.city!=null) str += loc.city;
+		    	if(loc.state!=null) str += ", " + loc.state + "";
+		    	if(loc.country!=null) str += " (" + loc.country + ")";
+		    	return str;
+		    }
+		    
+		    private function getCategoryLabel(item:Object):String
+			{
+				var l:String = (item.parent_id>0 ? " - "+item.title : item.title);
+				if(item.num_children) l += ' (' + item.num_children + ')';
+				return  l;
+			}
+			
+			private function onSetLanguageClick(event:ItemClickEvent):void
+		    {
+		    	var locale:String = event.item.locale as String;
+		    	
+		    	var e:ApplicationEvent = new ApplicationEvent(ApplicationEvent.SET_LOCALE);
+		    	e.locale = locale;
+		    	dispatchEvent(e);
+		    }
+		    
+		    override protected function resourcesChanged():void
+		    {
+		    	ALL_CATEGORIES = resourceManager.getString("resources","label.categories.all");
+				ALL_TYPES = resourceManager.getString("resources","label.types.all");
+				ALL_LOCATIONS = resourceManager.getString("resources","label.locations.all");
+				
+				if(categorySelect!=null)
+				{
+		    		(categorySelect.dataProvider as ArrayCollection).setItemAt({title:ALL_CATEGORIES},0);
+		    		if(categorySelect.selectedIndex>-1)
+		    			categorySelect.selectedItem = (categorySelect.dataProvider as ArrayCollection).getItemAt(categorySelect.selectedIndex);
+		  		}
+		  		
+		    	if(typeSelect!=null)
+		    	{
+		    		(typeSelect.dataProvider as ArrayCollection).setItemAt({title:ALL_TYPES},0);
+		    		if(typeSelect.selectedIndex>-1)
+		    			typeSelect.selectedItem = (typeSelect.dataProvider as ArrayCollection).getItemAt(typeSelect.selectedIndex);
+		    	}
+		    	
+		    	if(locationSelect!=null)
+		    	{
+					(locationSelect.dataProvider as ArrayCollection).setItemAt({title:ALL_LOCATIONS},0);
+		    		if(locationSelect.selectedIndex>-1)
+		    			locationSelect.selectedItem = (locationSelect.dataProvider as ArrayCollection).getItemAt(locationSelect.selectedIndex);
+		    	}
+		    }
+		    
+		    private function init():void
+		    {
+		    	BindingUtils.bindSetter(onSetCategories,_notesModel,"categories");
+		    	BindingUtils.bindSetter(onSetTypes,_notesModel,"types");
+		    	BindingUtils.bindSetter(onSetLocations,_notesModel,"locations");
+		    }
+		]]>
+	</mx:Script>
+	
+	<mx:Move id="tween" duration="400" easingFunction="{Exponential.easeIn}"/>
+	
+	<mx:HBox width="95%" height="30" verticalAlign="top">
+	
+		<mx:Text 
+			styleName="noteCountText"
+			text="{StringUtils.replace(resourceManager.getString('resources','label.resultcount'),
+										_notesModel.notesFiltered!=null?
+										_notesModel.notesFiltered.length:0,
+										_notesModel.notes.length)}" 
+			selectable="false" />
+		
+	</mx:HBox>
+	
+	<mx:ComboBox 
+		id="categorySelect" 
+		width="150" height="19"
+		styleName="filterSelect"
+		dataProvider="{_notesModel.categories}" 
+		labelField="title" 
+		change="onFiltersChange(event)" 
+		enabled="{!_notesModel.loading}" 
+		labelFunction="getCategoryLabel" />
+	
+	<mx:ComboBox 
+		id="typeSelect" 
+		width="150" height="19"
+		styleName="filterSelect"
+		dataProvider="{_notesModel.types}" 
+		labelField="title"
+		change="onFiltersChange(event)"
+		enabled="{!_notesModel.loading}" />	
+		
+	<mx:ComboBox 
+		id="locationSelect" 
+		width="150" height="19"
+		styleName="filterSelect"
+		dataProvider="{_notesModel.locations}" 
+		labelFunction="getLocationLabel"
+		change="onFiltersChange(event)"
+		enabled="{!_notesModel.loading}" />	
+	
+	<mx:ToggleButtonBar 
+		focusRect="false" 
+		buttonStyleName="setLangButton" 
+		selectedButtonTextStyleName="setLangButtonSelectedText"
+		itemClick="onSetLanguageClick(event)"
+		labelField="language"
+		dataProvider="{languages}" />
+</mx:VBox>

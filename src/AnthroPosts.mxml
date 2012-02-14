@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:project="net.looklisten.notes.*"
+	xmlns:components="net.looklisten.components.*" 
+	xmlns:ncomponents="net.looklisten.notes.components.*" 
+	xmlns:model="net.looklisten.notes.model.*"
+	backgroundColor="0x333333"
+	layout="absolute"
+	preloader="net.looklisten.components.preload.CustomPreloader" 
+	initialize="init()">
+	
+	<mx:Style source="styles.css" />
+	
+	<mx:Script>
+		<![CDATA[
+			import caurina.transitions.Tweener;
+			
+			import mx.binding.utils.BindingUtils;
+			import mx.collections.ArrayCollection;
+			import mx.collections.Sort;
+			import mx.collections.SortField;
+			import mx.containers.Grid;
+			import mx.controls.Image;
+			import mx.controls.List;
+			import mx.core.FlexGlobals;
+			import mx.core.IFlexDisplayObject;
+			import mx.core.UIComponent;
+			import mx.effects.Glow;
+			import mx.effects.Tween;
+			import mx.events.ItemClickEvent;
+			import mx.events.ListEvent;
+			import mx.managers.ISystemManager;
+			import mx.managers.PopUpManager;
+			import mx.managers.SystemManager;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			
+			import net.looklisten.components.InfoBubble;
+			import net.looklisten.components.preload.ProgressSkin;
+			import net.looklisten.components.preload.ProgressSkinIndeterminate;
+			import net.looklisten.components.walk.Feet;
+			import net.looklisten.notes.components.NoteDisplay;
+			import net.looklisten.notes.controllers.NotesController;
+			import net.looklisten.notes.events.ApplicationEvent;
+			import net.looklisten.notes.layouts.GridLayout;
+			import net.looklisten.notes.layouts.ScatteredLayout;
+			import net.looklisten.notes.layouts.SimilarityLayout;
+			import net.looklisten.notes.layouts.SpiralLayout;
+			import net.looklisten.notes.model.NotesModel;
+			import net.looklisten.notes.popups.SearchWindow;
+			import net.looklisten.notes.soap.BaseNotes;
+			import net.looklisten.notes.soap.Category;
+			import net.looklisten.notes.soap.CategoryArray;
+			import net.looklisten.notes.soap.GetNotesResultEvent;
+			import net.looklisten.notes.soap.Location;
+			import net.looklisten.notes.soap.LocationArray;
+			import net.looklisten.notes.soap.Note;
+			import net.looklisten.notes.soap.NoteArray;
+			import net.looklisten.notes.soap.Type;
+			import net.looklisten.notes.soap.TypeArray;
+			import net.looklisten.sound.SoundManager;
+			import net.looklisten.utils.StringUtils;
+			
+			[Bindable] private var _notesModel:NotesModel = NotesModel.getInstance();
+			[Bindable] private var _notesController:NotesController = NotesController.getInstance();
+			
+			[Bindable]
+        	private var locales:Array = ["en_US","es_ES"];
+        	
+        	[Bindable]
+        	private var languages:ArrayCollection = new ArrayCollection([	
+        													{locale:locales[0],language:""},
+        								 					{locale:locales[1],language:""}]);
+        	
+			[Bindable]
+			private var simplifyUI:Boolean = false;
+			
+			private var searchWindow:SearchWindow;
+			private var infoBubble:InfoBubble;
+			
+			//	show previous/next
+			//	@param direction -1 for previous, 1 for next
+			private function showPrevNext(direction:int = 1):void
+			{
+				var i:int = _notesModel.notesFiltered.getItemIndex(_notesModel.maximizedNote.note);
+				list.showNote(  direction==1?list.getNext(i+direction):
+											 list.getPrev(i+direction) );
+			}
+		    
+		    //	pass image to TileBackground once loaded
+		    private function onBgImageLoaded(event:Event) : void  
+		    {
+		        var image : Image = Image( event.currentTarget );  
+		   		bg.setTileImage( image );
+		   		bg.visible = true;
+		    }
+		    
+		    //	shows about/comments links on logo rollover
+		    private function onLogoRollOut(event:Event):void
+		    {
+		    	var timer:Timer = new Timer(1000,1);
+		    	timer.addEventListener(TimerEvent.TIMER_COMPLETE,onLogoRollOutTimeout);
+		    	timer.start();
+		    }
+		    //	on logo rollout, inits a timer which hides links if not rolled-over
+		    private function onLogoRollOutTimeout(event:TimerEvent):void
+		    {
+		    	if(!logo.hitTestPoint(mouseX,mouseY) && !linkContainer.hitTestPoint(mouseX,mouseY))
+		    		linkContainer.visible=false;
+		    	else
+		    		(event.target as Timer).start();
+		    }
+		    
+		    /**	handles link clicks	*/
+		    private function onLinksClick(event:ItemClickEvent):void
+		    {
+		    	if(event.index==0)
+		    		navigateToURL(new URLRequest(Constants.SITE_ROOT+"/about.php"));
+		    	else if(event.index==1)
+		    		navigateToURL(new URLRequest(Constants.SITE_ROOT+"/timeline.php"));
+				else if(event.index==2)
+					navigateToURL(new URLRequest(Constants.SITE_ROOT+"/press.php"));
+		    	else if(event.index==3)
+		    		navigateToURL(new URLRequest(Constants.SITE_ROOT+"/comments.php"));
+		    }
+		    
+		    private function onCommonWordListRollOver(event:ListEvent):void
+		    {
+		    	list.connectionDisplay.focusNotes(event.itemRenderer.data.notes);
+		    }
+		    
+		    private function onCommonWordListRollOut(event:ListEvent):void
+		    {
+		    	list.connectionDisplay.unfocusNotes(event.itemRenderer.data.notes);
+		    }
+		    
+		    /** 
+		    * make a random footprint walk across the stage
+		    * with a 90% probability every second 
+		    */
+		    private function onWalkTimer(event:TimerEvent):void
+		    {
+		    	if(_notesModel.maximizedNote!=null) return;
+		    	
+		    	if(Math.random()*10>9.9)
+		    	{
+			    	var feet:Feet = new Feet();
+			    	feet.mouseEnabled=false;
+			    	feet.includeInLayout=false;
+			    	list.addChildAt(feet,list.getChildIndex(list.nodes)+1);
+			    	//	TODO: find good blend mode
+			    	feet.blendMode = BlendMode.DARKEN;
+			    	feet.walk(Math.random()*360,3+Math.random()*5);
+			    }
+		    }
+		    
+		    /** updates view type	*/
+		    private function updateView(event:ItemClickEvent):void
+		    {
+		    	if(_notesModel.maximizedNote)
+		    		list.hideNote(_notesModel.maximizedNote);
+		    	
+		    	switch(event.index)
+		    	{
+		    		case 0:
+		    			_notesController.setSortField(null);
+		    			_notesController.setLayout(new ScatteredLayout());
+		    			break;
+		    		case 1:
+		    			_notesController.setSortField(null);
+		    			_notesController.setLayout(new SimilarityLayout(list.connectionDisplay));
+		    			break;
+					case 2:
+						_notesController.setSortField(new SortField('color_hex',true,false,true));
+						if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
+						break;
+					case 3:
+		    			_notesController.setSortField(new SortField('complexity',true,false,true));
+		    			if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
+		    			break;
+		    		case 4:
+		    			_notesController.setSortField(new SortField('found_date',true,false,true));
+		    			if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
+		    			break;
+		    	}
+		    	showInfo(event.index,false);
+		    }
+		    
+		    private function showInfo(id:int,showIfAlreadySeen:Boolean = true):void
+		    {
+		    	//	don't show help on default view if not explicitly requested
+		    	if(id==0 && !showIfAlreadySeen) return;
+		    	
+				//	create popup
+		    	if(infoBubble==null || !infoBubble.isPopUp)
+					infoBubble = PopUpManager.createPopUp(this,InfoBubble) as InfoBubble;
+				
+				//	get content
+				var views:Array = ["scattered","common_words","color","complexity"];
+				var title:String = resourceManager.getString("resources","views."+views[id]);
+				var message:String = resourceManager.getString("resources","views."+views[id]+".info");
+				
+				//	if content was located in resource bundle, show window
+				if(message!=null)
+				{
+					infoBubble.showMessage(message,title,showIfAlreadySeen);
+					infoBubble.width = 500;
+					infoBubble.height = 150;
+					infoBubble.x = width/2-infoBubble.width/2;
+					infoBubble.y = 50;
+				}
+		    }
+		    
+		    /** updates progress bar as note images are loaded	*/
+		    private function onLoadedNotesChange(value:int):void
+		    {
+		    	bar.setProgress(_notesModel.loadQueueTotal-value,_notesModel.loadQueueTotal);
+		    }
+		    
+		   	private function onDataLoaded(loaded:Boolean):void
+		   	{
+		   		if(!loaded) return;
+				
+		   		//	init the links
+				views.dispatchEvent(new ItemClickEvent(ItemClickEvent.ITEM_CLICK,false,false,null,0));
+				_notesModel.maxNoteSize = Math.round(Math.max(width,height)/_notesModel.notes.length)*10;
+	    		_notesModel.maxNoteSize = Math.max(_notesModel.maxNoteSize,20);
+	    		
+				//	start walk timer
+		    	var walkTimer:Timer = new Timer(1000);
+		    	walkTimer.addEventListener(TimerEvent.TIMER,onWalkTimer);
+		    	//walkTimer.start();
+		    	
+				//	start "soundtrack"
+		    	initSounds();
+	    		
+				//	set progress bar to manual...
+	    		bar.mode = "manual";
+	    		bar.indeterminate = false;
+		   	}
+		    
+		    private function initSounds():void
+		    {
+				//	play some "street" sounds randomly
+				var vol:Number = .05;
+				SoundManager.getInstance().playRandom("assets/sounds/street/horns/horn_1.mp3",.5,50,0,new SoundTransform(.1));
+				SoundManager.getInstance().playRandom("assets/sounds/street/horns/truck_backup.mp3",.25,50,0,new SoundTransform(vol));
+				SoundManager.getInstance().playRandom("assets/sounds/street/horns/81173__mkoenig__Horn_Honk.mp3",.25,50,0,new SoundTransform(vol));
+				SoundManager.getInstance().playRandom("assets/sounds/street/passing/passing_horn.mp3",.25,50,0,new SoundTransform(vol));
+				
+				//	construction
+				SoundManager.getInstance().playRandom("assets/sounds/street/construction/7313__dobroide__cons#90F8F2.mp3",.25,50,0,new SoundTransform(.1));
+				SoundManager.getInstance().playRandom("assets/sounds/street/passing/ambulance.mp3",10,50,0,new SoundTransform(.1));
+				SoundManager.getInstance().playRandom("assets/sounds/street/passing/bus.mp3",.25,50,0,new SoundTransform(.1));
+				
+				//	play some loops
+				SoundManager.getInstance().play("assets/sounds/loops/wind.mp3",new SoundTransform(.8),0,99999);
+				
+				if( !simplifyUI ) 
+				{
+					SoundManager.getInstance().play("assets/sounds/loops/pad.mp3",new SoundTransform(.2),0,99999);
+				}
+		    }
+		    
+		    private function onNavigateToUrl(event:ApplicationEvent):void
+		    {
+		    	navigateToURL(new URLRequest(event.url),"_blank");
+		    }
+		    
+		    private function onShowHelp(event:ApplicationEvent):void
+		    {
+		    	showInfo(views.selectedIndex,true);
+		    }
+		    
+		    private function onShowSearch(event:ApplicationEvent):void
+		    {
+		    	if(searchWindow == null || !searchWindow.isPopUp)
+		    		searchWindow = PopUpManager.createPopUp(this,SearchWindow,true) as SearchWindow;	
+		    	
+		    	var stage:Rectangle = systemManager.screen;
+		    	searchWindow.view = list;
+		    	searchWindow.bundle = resourceManager;
+		    	searchWindow.x = stage.width/2-searchWindow.width/2;
+		    	searchWindow.y = stage.height/2-searchWindow.height/2;
+		    }
+		    
+		    private function onSetLanguage(event:ApplicationEvent):void
+		    {
+		    	var locale:String = event.locale as String;
+		    	setLanguage(locale);
+		    }
+		    
+		    private function setLanguage(locale:String):void
+		    {
+		    	if(locale=="es_ES")
+		    		resourceManager.localeChain=[locales[1],locales[0]];
+		    	else
+		    		resourceManager.localeChain=[locales[0],locales[1]];
+		    }
+		    
+		    override protected function resourcesChanged():void
+		    {
+		    	for(var i:int=0;i<languages.length;i++)
+		    	{
+		    		var locale:String = languages.getItemAt(i).locale;
+		    		languages.setItemAt({locale:locale,language:resourceManager.getString('resources','button.label.'+locale)},i);
+		    	}
+		    }
+		    
+			private function init():void
+			{
+				//	load pavement image for tiled background
+				var tile:Image = new Image();
+				tile.source = "assets/images/tiles/asphalt.jpg";
+				tile.addEventListener( Event.COMPLETE, onBgImageLoaded  );  
+				tile.load();
+				
+				var url:String = ExternalInterface.call('window.location');
+				
+				//var displayMode:String = url.indexOf( 'mode=kiosk' ) > -1 ? Constants.MODE_KIOSK : Constants.MODE_NORMAL;
+				
+				simplifyUI = true;
+				
+                //	listen for when a note has been loaded, so progess bar can be updated
+                BindingUtils.bindSetter(onLoadedNotesChange,_notesModel,"loadQueue");
+                //	listen for when data has been loaded
+                BindingUtils.bindSetter(onDataLoaded,_notesModel,"dataLoaded");
+                //	start loading data...
+				_notesController.initLoadSequence();
+				
+                addEventListener(ApplicationEvent.SHOW_HELP,onShowHelp);
+                addEventListener(ApplicationEvent.SHOW_SEARCH,onShowSearch);
+                
+                //Application.application.parameters.locale="es_ES";
+                if(FlexGlobals.topLevelApplication.parameters.locale!=null)
+                	setLanguage(FlexGlobals.topLevelApplication.parameters.locale);
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Metadata>
+        [ResourceBundle("resources")]
+    </mx:Metadata>
+    
+	<mx:GlowFilter id="glow" blurX="3" blurY="3" color="0xFFFFFF" strength="1" />
+	
+	<mx:Fade id="fadeUp" alphaFrom="0" alphaTo="1" />
+	
+	<!--	show/hide effects for links	-->
+	<mx:Blur id="blurIn" blurXFrom="10" blurYFrom="10" blurXTo="0" blurYTo="0" />
+	<mx:Blur id="blurOut" blurXFrom="0" blurYFrom="0" blurXTo="10" blurYTo="10" />
+	
+	<!--	bg, consisting of a tiled pavement image	-->
+	<components:TileBackground id="bg" 
+		percentWidth="100" percentHeight="100" visible="false" showEffect="{fadeUp}" />
+	
+	<!--	view display	-->
+	<ncomponents:NotesDisplay id="list" 
+		navigateToUrl="onNavigateToUrl(event)" 
+		width="{width}" height="{height}" />
+	
+	<!--	logo	-->
+	<mx:Image id="logo" 
+		left="10" top="10" 
+		source="@Embed('assets/images/anthroposts.png')"
+		click="navigateToURL(new URLRequest(Constants.SITE_ROOT + '/comments.php'),'_blank')" 
+   		filters="{[glow]}" 
+   		useHandCursor="true" 
+   		rollOver="{linkContainer.visible=!simplifyUI}" rollOut="{onLogoRollOut(event)}"
+		visible="{!simplifyUI}"/>
+	
+	<!--	action/comments links	-->
+	<mx:Canvas id="linkContainer" 
+		left="10" top="{10+logo.height+5}" 
+		showEffect="{blurIn}" hideEffect="{blurOut}" 
+		visible="false">
+		<mx:Canvas 
+			width="{links.width}" height="{links.height-10}"
+			x="{links.x}" y="{links.y+4}"
+			backgroundColor="0x000000" 
+			backgroundAlpha=".75" />
+		<mx:LinkBar id="links" 
+			linkButtonStyleName="linkButton" styleName="sortLinks"
+			separatorSkin="net.looklisten.skins.CustomLinkSeparator" 
+			horizontalGap="5" 
+			itemClick="{onLinksClick(event)}" 
+			dataProvider="{[resourceManager.getString('resources','nav.about'),
+							resourceManager.getString('resources','nav.timeline'),
+							resourceManager.getString('resources','nav.press'),
+							resourceManager.getString('resources','nav.comments')]}" />
+	</mx:Canvas>
+	
+	<!--	links to control view	-->
+	<mx:VBox right="20" top="10" horizontalAlign="right">
+		
+		<mx:Canvas visible="{!simplifyUI}">
+			<mx:Canvas 
+				width="{views.width}" height="{views.height-10}" 
+				x="{views.x}" y="{views.y+4}"
+				backgroundColor="0x000000" 
+				backgroundAlpha=".75" />
+			<mx:ToggleButtonBar 
+				id="views" 
+				styleName="viewLinkButtonBar"
+				focusRect="false"
+				itemClick="updateView(event)" 
+				dataProvider="{[resourceManager.getString('resources','views.scattered'),						
+								resourceManager.getString('resources','views.common_words'),
+								resourceManager.getString('resources','views.color'),
+								resourceManager.getString('resources','views.complexity')]}" 
+				enabled="{!_notesModel.loading}" />
+			<!--	resourceManager.getString('resources','views.time')	-->
+		</mx:Canvas>
+		
+		<mx:HBox visible="{!simplifyUI}">
+			<mx:HBox 
+				visible="{	!_notesModel.loading &amp;&amp;
+							!(_notesModel.layout is ScatteredLayout) &amp;&amp; 
+							!(_notesModel.layout is SimilarityLayout)}">
+				<mx:Button 
+					width="27" height="27" 
+					click="{_notesController.setLayout(new SpiralLayout())}" 
+					upSkin="@Embed('assets/images/buttons/spiral.png')" 
+					overSkin="@Embed('assets/images/buttons/spiral_ovr.png')" 
+					downSkin="@Embed('assets/images/buttons/spiral_ovr.png')"
+					selectedDisabledSkin="@Embed('assets/images/buttons/spiral_ovr.png')"
+					selectedDownSkin="@Embed('assets/images/buttons/spiral_ovr.png')"
+					selectedOverSkin="@Embed('assets/images/buttons/spiral_ovr.png')"
+					selectedUpSkin="@Embed('assets/images/buttons/spiral_ovr.png')" 
+					toggle="true" selected="{_notesModel.layout is SpiralLayout}"
+					useHandCursor="true" buttonMode="true" mouseChildren="false" />
+				<mx:Button 
+					width="27" height="27" 
+					click="{_notesController.setLayout(new GridLayout())}" 
+					upSkin="@Embed('assets/images/buttons/grid.png')" 
+					overSkin="@Embed('assets/images/buttons/grid_ovr.png')" 
+					downSkin="@Embed('assets/images/buttons/grid_ovr.png')" 
+					selectedDisabledSkin="@Embed('assets/images/buttons/grid_ovr.png')"
+					selectedDownSkin="@Embed('assets/images/buttons/grid_ovr.png')"
+					selectedOverSkin="@Embed('assets/images/buttons/grid_ovr.png')"
+					selectedUpSkin="@Embed('assets/images/buttons/grid_ovr.png')"
+					toggle="true" selected="{_notesModel.layout is GridLayout}"
+					useHandCursor="true" buttonMode="true" mouseChildren="false" />
+			</mx:HBox>
+		</mx:HBox>
+	</mx:VBox>
+	
+	<!--	prev/next buttons	-->
+	<mx:Button 
+		id="prev" 
+		width="13" height="17"
+		click="showPrevNext(-1)" 
+		upSkin="@Embed('assets/images/buttons/arrow_left.png')" 
+		overSkin="@Embed('assets/images/buttons/arrow_left_ovr.png')" 
+		downSkin="@Embed('assets/images/buttons/arrow_left_ovr.png')" 
+		enabled="{_notesModel.maximizedNote!=null &amp;&amp; !simplifyUI}"
+		visible="{_notesModel.maximizedNote!=null &amp;&amp; !simplifyUI}"
+		left="10" top="{height/2-prev.height}" />
+	<mx:Button 
+		id="next" 
+		width="13" height="17" 
+		click="showPrevNext(1)" 
+		upSkin="@Embed('assets/images/buttons/arrow_right.png')" 
+		overSkin="@Embed('assets/images/buttons/arrow_right_ovr.png')" 
+		downSkin="@Embed('assets/images/buttons/arrow_right_ovr.png')"
+		enabled="{_notesModel.maximizedNote!=null &amp;&amp; !simplifyUI}"
+		visible="{_notesModel.maximizedNote!=null &amp;&amp; !simplifyUI}"
+		right="20" top="{height/2-next.height}" />
+	
+	<!--	filter pane	-->
+	<ncomponents:FilterControl 
+		right="{60}" 
+		y="{filterControls.maximized?height-filterControls.height+20:height-40}"
+		id="filterControls" 
+		includeInLayout="false" 
+		showEffect="{fadeUp}" 
+		visible="{_notesModel.notes!=null &amp;&amp; !simplifyUI}"
+		rotation="2" languages="{languages}"
+		setLanguage="onSetLanguage(event)" showHelp="onShowHelp(event)" 
+		rollOver="{filterControls.maximized=true}" 
+		rollOut="{if(!filterControls.hitTestPoint(mouseX,mouseY)){filterControls.maximized=false}}"
+		view="{list}" />
+	
+	<mx:List id="commonWordList" 
+		variableRowHeight="true" 
+		width="100" height="400" 
+		right="20" y="{height/2-commonWordList.height/2}" 
+		dataProvider="{_notesModel.connections}" 
+		labelField="word" rollOverColor="#000000" paddingRight="10"
+		itemRollOver="{onCommonWordListRollOver(event)}"
+		itemRollOut="{onCommonWordListRollOut(event)}" 
+		itemClick="commonWordList.selectedItem=null"
+		visible="{(_notesModel.layout is SimilarityLayout) &amp;&amp; _notesModel.maximizedNote==null}" 
+		itemRenderer="net.looklisten.notes.itemRenderer.CommonWordRenderer" />
+	
+	<mx:LinkButton 
+		right="20" bottom="30" 
+		fontSize="8" label="Edit" 
+		visible="{Constants.DEBUG &amp;&amp; _notesModel.maximizedNote!=null}" includeInLayout="{Constants.DEBUG &amp;&amp; _notesModel.maximizedNote!=null}" 
+		click="{navigateToURL(new URLRequest(Constants.SITE_ROOT_ADMIN+'/?id='+_notesModel.maximizedNote.note.id),'_blank')}" />
+	
+	<!--	volume control	-->
+	<mx:HBox height="{volumeControl.height}" right="20" bottom="10" verticalAlign="middle" visible="{!simplifyUI}">
+		<components:VolumeControl id="volumeControl" />
+		<mx:Button 
+			includeInLayout="{_notesModel.notes!=null}"
+			visible="{_notesModel.notes!=null}"
+			width="16" height="16"
+			upSkin="@Embed('assets/images/buttons/search.png')" 
+			overSkin="@Embed('assets/images/buttons/search_ovr.png')" 
+			downSkin="@Embed('assets/images/buttons/search_ovr.png')" 
+			click="{dispatchEvent(new ApplicationEvent(ApplicationEvent.SHOW_SEARCH))}" />
+		<mx:Button 
+			includeInLayout="{_notesModel.notes!=null}"
+			visible="{_notesModel.notes!=null}"
+			width="16" height="16"
+			upSkin="@Embed('assets/images/buttons/info.png')" 
+			overSkin="@Embed('assets/images/buttons/info_ovr.png')" 
+			downSkin="@Embed('assets/images/buttons/info_ovr.png')" 
+			click="{dispatchEvent(new ApplicationEvent(ApplicationEvent.SHOW_HELP))}" />
+		
+	</mx:HBox>
+	
+	<!--	progress bar	-->
+	<mx:ProgressBar 
+		id="bar" 
+		width="100" verticalGap="0" labelPlacement="top" trackHeight="10"
+		label="{_notesModel.loading?_notesModel.loadOperationName :''}" 
+		indeterminate="{!(_notesModel.loadQueue > 0) &amp;&amp; ((_notesModel.maximizedNote!=null &amp;&amp; _notesModel.maximizedNote.loading) || !_notesModel.dataLoaded)}" 
+		indeterminateMoveInterval="10"
+        barSkin="{ProgressSkin}" indeterminateSkin="{ProgressSkinIndeterminate}"
+		x="{width/2-bar.width/2}" y="{height/2-bar.height}"
+        visible="{_notesModel.loading || (_notesModel.maximizedNote!=null &amp;&amp; _notesModel.maximizedNote.loading)}" />
+	
+</mx:Application>

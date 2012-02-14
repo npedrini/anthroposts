@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="{WIDTH+MARGIN*2}" height="{HEIGHT+MARGIN*2}" 
+	backgroundAlpha="0"
+	creationComplete="init()">
+	
+	<mx:Script>
+		<![CDATA[
+			import net.looklisten.sound.SoundManager;
+			
+			[Bindable]
+			private var _isRolledOver:Boolean = false;
+			
+			private const WIDTH:int = 29;
+			private const HEIGHT:int = 16;
+			private const MARGIN:int = 4;
+			
+			private function onMouseDown(event:MouseEvent):void
+			{
+				addEventListener(MouseEvent.MOUSE_MOVE,onMouseMove);
+			}
+			
+			private function onMouseMove(event:MouseEvent):void
+			{
+				var volume:Number = Math.min(event.localX,vol.x+vol.width)/(width-MARGIN*2);
+				volume<.1?volume=0:null;
+				volume>1?volume=1:null;
+				volmask.scaleX = volume;
+				SoundManager.getInstance().volume = volmask.scaleX;
+			}
+			
+			private function onMouseUp(event:MouseEvent):void
+			{
+				removeEventListener(MouseEvent.MOUSE_MOVE,onMouseMove);
+			}
+			
+			private function onRollOver(event:MouseEvent):void
+			{
+				_isRolledOver = true;
+			}
+			
+			private function onRollOut(event:MouseEvent):void
+			{
+				_isRolledOver = false;
+				removeEventListener(MouseEvent.MOUSE_MOVE,onMouseMove);
+			}
+			
+			private function init():void
+			{
+				volmask.graphics.beginFill(0x000000);
+				volmask.graphics.drawRect(0,0,WIDTH,HEIGHT);
+				
+				vol.mask = volmask;
+				
+				addEventListener(MouseEvent.MOUSE_DOWN,onMouseDown);
+				//	route all these events through MouseUp
+				//	...in all cases we want to stop listening for MouseMove
+				addEventListener(MouseEvent.MOUSE_UP,onMouseUp);
+				//\addEventListener(MouseEvent.MOUSE_OUT,onMouseUp);
+				//addEventListener(MouseEvent.ROLL_OUT,onMouseUp);
+				addEventListener(MouseEvent.ROLL_OVER,onRollOver);
+				addEventListener(MouseEvent.ROLL_OUT,onRollOut);
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Image id="bg" 
+		source="@Embed('../../../assets/images/controls/volume.png')" 
+		left="{MARGIN}" top="{MARGIN}" />
+	<mx:Image id="vol" 
+		source="@Embed('../../../assets/images/controls/volume_overlay.png')" 
+		left="{MARGIN}" top="{MARGIN}" />
+	<mx:Canvas id="volmask" 
+		left="{MARGIN}" top="{MARGIN}" />
+	
+</mx:Canvas>
