@@ -1,0 +1,5 @@
+nthroPosts is an interactive web installation visualizing found sticky notes from the streets of the world. By providing glimpses into the lives of strangers through the phone numbers, grocery lists, and other assorted messages they've left behind, the otherwise passive viewer becomes an active participant in an ad-hoc community that straddles both the on- and offline worlds.
+
+An homage to the written word, AnthroPosts highlights the singular beauty of handwriting while simultaneously foreseeing its eventual decline. By drawing parallels between the hand-collected notes and the similarly terse grammatical style of text messages, twitter updates, and email messages, an inferred importance is placed on handwriting and it's ability to convey the personality of the writer.
+
+Integrating recordings of crowd-sourced workers reading selected notes (solicited through Amazon's Mechanical turk), an additional layer of anonymous participation is introduced. With submissions collected and added to the project constantly, AnthroPosts is a living document, a note itself left for the world to find.
