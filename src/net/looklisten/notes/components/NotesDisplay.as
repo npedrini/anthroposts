@@ -506,6 +506,7 @@ package net.looklisten.notes.components
 			{
 				if((_notesModel.layout is SimilarityLayout) && nd.siblings!=null && nd.siblings.length)
 				{
+					nd.addEventListener(MouseEvent.ROLL_OUT,onNoteRollOut);
 					connectionDisplay.onNoteRollOver(nd);
 				}
 				else 
