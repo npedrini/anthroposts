@@ -1,0 +1,114 @@
+@font-face {
+    src: url("assets/fonts/Envy Code R Bold.ttf");
+    fontFamily: SansSerif;
+    fontWeight: "bold";
+}
+
+@font-face {
+    src: url("assets/fonts/Greyscale Basic Bold.ttf");
+    fontFamily: SansSerif2;
+    fontWeight: "bold";
+}
+
+Application {
+	backgroundColor: #333333;
+}
+
+ComboBox, Button, CheckBox, List {
+	fontFamily: SansSerif2;
+	fontWeight: "bold";
+	color: #FFFFFF;
+	fontSize:9px;
+}
+
+ComboBox, Button, CheckBox {
+	borderColor: #FFFFFF;
+	borderThickness: 2px;
+	paddingTop: 2px;
+}
+
+List {
+	textRollOverColor: #00FF00;
+	rollOverColor: #333333;
+	selectionColor: #333333;
+	textSelectedColor: #00FF00;
+	backgroundAlpha: 0; 
+	borderThickness: 0;
+}
+
+RadioButton {
+	color: #FFFFFF;
+	textRollOverColor: #FFFFFF;	
+}
+
+Button {
+	fillColors: #000000,#000000;
+	highlightAlphas: 0,0;
+	focusThickness: 0;
+	cornerRadius:0;
+}
+
+ComboBox {
+	dropDownStyleName: "comboDropDown";
+}
+
+.comboDropDown {
+	fontFamily: SansSerif2;
+	fontWeight: "bold";
+	backgroundColor: #000000;
+	color: #FFFFFF;
+}
+
+.filterSelect {
+	backgroundColor: #333333;	
+}
+
+.connectionLabel
+{
+	fontFamily: SansSerif;
+	fontSize: 9;
+	backgroundColor: #000000;
+	color: #FFFFFF;
+	borderColor: #FFFFFF;
+	borderThickness: 1;
+	textAlign: center;
+	paddingLeft: 0;
+	paddingTop: 0;
+	paddingRight: 0;
+	paddingBottom: 0;
+	fontWeight: "bold";
+}
+
+.noteHeader {
+	backgroundColor: #FFFFFF;
+	padding: 1;
+}
+.noteFooter {
+	backgroundColor: #000000;
+	borderColor: #FFFFFF;
+	borderThickness: 4;
+}
+.noteHeaderText {
+	color: #333333;
+	fontFamily: SansSerif;
+	fontSize: 12;
+	fontWeight: "bold";
+}
+.noteFooterText {
+	color: #FFFFFF;
+	fontFamily: SansSerif;
+	fontSize: 14;
+	fontWeight: "bold";
+}
+.noteCountText {
+	color: #FFFFFF;
+	fontFamily: SansSerif;
+	fontSize: 9;
+	fontWeight: "bold";
+}
+.linkButton {
+	color: #FFFFFF;
+	fontFamily: SansSerif2;
+	fontSize: 15px;
+	skin: ClassReference(null);	
+}
