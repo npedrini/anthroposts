@@ -74,10 +74,12 @@
         								 					{locale:locales[1],language:""}]);
         	
 			[Bindable]
-			private var simplifyUI:Boolean = false;
+			public static var simplifyUI:Boolean = false;
 			
 			private var searchWindow:SearchWindow;
 			private var infoBubble:InfoBubble;
+			
+			private var kioskTimer:Timer;
 			
 			//	show previous/next
 			//	@param direction -1 for previous, 1 for next
@@ -158,35 +160,71 @@
 		    /** updates view type	*/
 		    private function updateView(event:ItemClickEvent):void
 		    {
-		    	if(_notesModel.maximizedNote)
-		    		list.hideNote(_notesModel.maximizedNote);
-		    	
-		    	switch(event.index)
-		    	{
-		    		case 0:
-		    			_notesController.setSortField(null);
-		    			_notesController.setLayout(new ScatteredLayout());
-		    			break;
-		    		case 1:
-		    			_notesController.setSortField(null);
-		    			_notesController.setLayout(new SimilarityLayout(list.connectionDisplay));
-		    			break;
+		    	doUpdateView( event.index );
+		    }
+		    
+			private function doUpdateView( id:int ):void
+			{
+				if(_notesModel.maximizedNote)
+					list.hideNote(_notesModel.maximizedNote);
+				
+				switch(id)
+				{
+					case 0:
+						_notesController.setSortField(null);
+						_notesController.setLayout(new ScatteredLayout());
+						break;
+					case 1:
+						_notesController.setSortField(null);
+						_notesController.setLayout(new SimilarityLayout(list.connectionDisplay));
+						break;
 					case 2:
 						_notesController.setSortField(new SortField('color_hex',true,false,true));
 						if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
 						break;
 					case 3:
-		    			_notesController.setSortField(new SortField('complexity',true,false,true));
-		    			if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
-		    			break;
-		    		case 4:
-		    			_notesController.setSortField(new SortField('found_date',true,false,true));
-		    			if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
-		    			break;
-		    	}
-		    	showInfo(event.index,false);
-		    }
-		    
+						_notesController.setSortField(new SortField('complexity',true,false,true));
+						if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
+						break;
+					case 4:
+						_notesController.setSortField(new SortField('found_date',true,false,true));
+						if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
+						break;
+				}
+				showInfo(id,false);
+			}
+			
+			private function onKioskTimer(event:TimerEvent):void
+			{
+				if( _notesModel.loading ) return;
+				
+				if( Timer(event.target).currentCount % Constants.KIOSK_UPDATE_VIEW_INTERVAL == 0 )
+				{
+					var viewID:int = views.selectedIndex;
+					
+					if( viewID == (views.dataProvider as ArrayCollection).length - 1 ) viewID = 0;
+					else viewID++;
+					
+					views.selectedIndex = viewID;
+					
+					doUpdateView( viewID );
+				}
+				else if( Timer(event.target).currentCount % Constants.KIOSK_TOGGLE_NOTE_INTERVAL == 0 )
+				{
+					if( _notesModel.maximizedNote )
+					{
+						list.hideNote(_notesModel.maximizedNote);
+					}
+					else
+					{
+						var noteID:int = Math.round( Math.random() * _notesModel.notes.length );
+						var note:Note = Note( _notesModel.notes.getItemAt( noteID ) );
+						
+						list.showNote( NoteDisplay( list.nodes.getChildByName( 'nd' + note.id ) ) );
+					}
+				}
+			}
+			
 		    private function showInfo(id:int,showIfAlreadySeen:Boolean = true):void
 		    {
 		    	//	don't show help on default view if not explicitly requested
@@ -238,6 +276,13 @@
 				//	set progress bar to manual...
 	    		bar.mode = "manual";
 	    		bar.indeterminate = false;
+				
+				if( simplifyUI )
+				{
+					kioskTimer = new Timer( 1000 );
+					kioskTimer.addEventListener( TimerEvent.TIMER, onKioskTimer );
+					kioskTimer.start();
+				}
 		   	}
 		    
 		    private function initSounds():void
@@ -318,9 +363,8 @@
 				
 				var url:String = ExternalInterface.call('window.location');
 				
-				//var displayMode:String = url.indexOf( 'mode=kiosk' ) > -1 ? Constants.MODE_KIOSK : Constants.MODE_NORMAL;
-				
-				simplifyUI = true;
+				var params:Object = Object( FlexGlobals.topLevelApplication.parameters );
+				simplifyUI = params && params.hasOwnProperty('mode') && params['mode'] == 'kiosk';
 				
                 //	listen for when a note has been loaded, so progess bar can be updated
                 BindingUtils.bindSetter(onLoadedNotesChange,_notesModel,"loadQueue");
