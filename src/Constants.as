@@ -8,8 +8,9 @@ package
 
 		public static const MAPS_URL:String = "http://maps.google.com/maps";
 		
-		public static const KIOSK_UPDATE_VIEW_INTERVAL:int = 60;
-		public static const KIOSK_TOGGLE_NOTE_INTERVAL:int = 10;
+		public static const KIOSK_INTERVAL_1:int = 60;
+		public static const KIOSK_INTERVAL_2:int = 10;
+		public static const KIOSK_INTERVAL_3:int = 5;
 		
 		public static const DEBUG:Boolean = false;
 	}

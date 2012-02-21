@@ -28,6 +28,8 @@ package net.looklisten.notes.components.connection
 		[Bindable]
 		public var word:String;
 		
+		public var focusedNoteDisplay:NoteDisplay;
+		
 		public function NoteConnectionDisplay()
 		{
 			_noteWords = new Array();
@@ -202,6 +204,8 @@ package net.looklisten.notes.components.connection
 			
 			var words:Array = new Array();
 			word = (_noteWords[nd.note.id] as Array).join(", ").toUpperCase();
+			
+			focusedNoteDisplay = nd;
 		}
 		
 		public function onNoteRollOut(nd:NoteDisplay):void
@@ -210,6 +214,7 @@ package net.looklisten.notes.components.connection
 			//for each(var sib:NoteDisplay in nd.siblings) notes.push(sib.note);
 			unfocusNotes(notes);
 			word = null;
+			focusedNoteDisplay = null;
 		}
 		
 		private function getRelated(note:NoteDisplay):Array

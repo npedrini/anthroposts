@@ -8,7 +8,8 @@
 	backgroundColor="0x333333"
 	layout="absolute"
 	preloader="net.looklisten.components.preload.CustomPreloader" 
-	initialize="init()">
+	initialize="init()" 
+	mouseChildren="{!simplifyUI}">
 	
 	<mx:Style source="styles.css" />
 	
@@ -191,14 +192,18 @@
 						if(!_notesModel.layout.sortable) _notesController.setLayout(new SpiralLayout());
 						break;
 				}
-				showInfo(id,false);
+				
+				if( !simplifyUI ) showInfo(id,false);
 			}
 			
 			private function onKioskTimer(event:TimerEvent):void
 			{
 				if( _notesModel.loading ) return;
 				
-				if( Timer(event.target).currentCount % Constants.KIOSK_UPDATE_VIEW_INTERVAL == 0 )
+				var nd:NoteDisplay;
+				
+				//	change view mode
+				if( Timer(event.target).currentCount % Constants.KIOSK_INTERVAL_1 == 0 )
 				{
 					var viewID:int = views.selectedIndex;
 					
@@ -209,7 +214,34 @@
 					
 					doUpdateView( viewID );
 				}
-				else if( Timer(event.target).currentCount % Constants.KIOSK_TOGGLE_NOTE_INTERVAL == 0 )
+				
+				else if( Timer(event.target).currentCount % Constants.KIOSK_INTERVAL_2 == 0 )
+				{
+					//	if similarity layout, show word
+					if( !_notesModel.maximizedNote
+						&& _notesModel.layout is SimilarityLayout )
+					{
+						if( list.connectionDisplay.focusedNoteDisplay )
+						{
+							list.connectionDisplay.onNoteRollOut( list.connectionDisplay.focusedNoteDisplay );
+						}
+						else
+						{
+							nd = list.getRandomNote( true );
+							
+							list.connectionDisplay.onNoteRollOver( nd );
+						}
+					}
+					
+					//	if not similarity layout and there is a maximized note, show word
+					else if( _notesModel.maximizedNote )
+					{
+						list.doNoteRollOver( _notesModel.maximizedNote );
+					}
+				}
+				
+				//	minimize/maximize note
+				else if( Timer(event.target).currentCount % Constants.KIOSK_INTERVAL_3 == 0 )
 				{
 					if( _notesModel.maximizedNote )
 					{
@@ -217,12 +249,12 @@
 					}
 					else
 					{
-						var noteID:int = Math.round( Math.random() * _notesModel.notes.length );
-						var note:Note = Note( _notesModel.notes.getItemAt( noteID ) );
+						nd = list.getRandomNote();
 						
-						list.showNote( NoteDisplay( list.nodes.getChildByName( 'nd' + note.id ) ) );
+						list.showNote( nd );
 					}
 				}
+				
 			}
 			
 		    private function showInfo(id:int,showIfAlreadySeen:Boolean = true):void
@@ -364,6 +396,7 @@
 				var url:String = ExternalInterface.call('window.location');
 				
 				var params:Object = Object( FlexGlobals.topLevelApplication.parameters );
+				
 				simplifyUI = params && params.hasOwnProperty('mode') && params['mode'] == 'kiosk';
 				
                 //	listen for when a note has been loaded, so progess bar can be updated

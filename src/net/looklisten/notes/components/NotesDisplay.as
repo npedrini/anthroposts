@@ -229,8 +229,8 @@ package net.looklisten.notes.components
 				_notesModel.loadQueue = _notesModel.loadQueueTotal = _notesModel.notesFiltered.length;
 			}
 			
-			var t_secs:Number = 3;
-			var s_inc:Number  = t_secs/_notesModel.notes.length;
+			var ms:Number = 4;
+			var s_inc:Number  = ms/_notesModel.notesFiltered.length;
 			var nd:NoteDisplay;
 			var w:Number = 0;
 			var h:Number = 0;
@@ -245,18 +245,6 @@ package net.looklisten.notes.components
 					var y:Number = nd.default_y;
 					
 					nd.tweenTo( nd, { x:x, y:y, rotation:nd.default_rotation }, 500, "easeOutQuint", null, s_inc*i );
-					
-					/*
-					Tweener.addTween(nd,
-								{
-									x:x,
-									y:y,
-									rotation:nd.default_rotation,
-									time: .5,
-									transition: "easeOutQuint", 
-									delay:s_inc*i
-								});
-					*/
 					
 					nd.setHeight(noteSize,true);					
 				}else{
@@ -348,6 +336,7 @@ package net.looklisten.notes.components
 				nd.maximized = true;
 				nd.show(w,h,center.x,center.y);
 			}
+			
 			//	update "curtain" to be behind maximized note
 			nodes.setChildIndex(curtain,nodes.numChildren-1);
 			//	update "curtain" to be behind maximized note
@@ -356,7 +345,6 @@ package net.looklisten.notes.components
 			nodes.setChildIndex(nd,nodes.numChildren-1);
 			
 			//	fade up curtain
-			//Tweener.addTween(curtain, {alpha:CURTAIN_ALPHA,time: .5});
 			TweenLite.to( curtain, .5, {alpha:CURTAIN_ALPHA} );
 		}
 		
@@ -372,7 +360,10 @@ package net.looklisten.notes.components
 				nd.hide();
 				//	unset `maximizedNote`
 				if(_notesModel.maximizedNote!=null && _notesModel.maximizedNote==nd)
+				{
 					_notesModel.maximizedNote=null;
+					maximizedNoteIsRolledOver = false;
+				}
 				
 				//	update "curtain" to be behind maximized note
 				nodes.setChildIndex(curtain,1);
@@ -382,7 +373,6 @@ package net.looklisten.notes.components
 				nodes.setChildIndex(nd,nd.default_depth);
 				
 				//	fade up curtain
-				//Tweener.addTween(curtain, {alpha:0,time: .5});
 				TweenLite.to( curtain, .5, {alpha:0} );
 			}
 		}
@@ -430,7 +420,8 @@ package net.looklisten.notes.components
 				infoBox.content += headerTxt.join(" ") + '\n\n';
 				if(content!=null && content!='')
 					infoBox.content += '<font color="#000000" size="12"><u>' + content + '</u></font>\n\n';
-				infoBox.content += '<a href="event:' + nd.maps_url + '" target="_blank">'+resourceManager.getString("resources","label.map")+'</a>\n\n';
+				if( !AnthroPosts.simplifyUI )
+					infoBox.content += '<a href="event:' + nd.maps_url + '" target="_blank">'+resourceManager.getString("resources","label.map")+'</a>\n\n';
 				infoBox.text.addEventListener(TextEvent.LINK,onLinkClick);
 			}
 		}
@@ -492,6 +483,11 @@ package net.looklisten.notes.components
 		{
 			var nd:NoteDisplay = event.currentTarget as NoteDisplay;
 			
+			doNoteRollOver( nd );
+		}
+		
+		public function doNoteRollOver( nd:NoteDisplay ):void
+		{
 			if( nd.tweening ) return;
 			
 			trace('onNoteRollOver');
@@ -601,5 +597,27 @@ package net.looklisten.notes.components
 			return nodes.getChildByName("nd"+note.id) as NoteDisplay;
 		}
 		
+		public function getRandomNote( hasSiblings:Boolean = false, i:int = 0 ):NoteDisplay
+		{
+			if( i == _notesModel.notesFiltered.length - 1 ) return null;
+			
+			var id:int = Math.round( Math.random() * (_notesModel.notesFiltered.length - 1 ) );
+			var note:Note = _notesModel.notesFiltered.getNoteAt( id );
+			var nd:NoteDisplay = getNoteDisplayByNote( note );
+			
+			if( hasSiblings )
+			{
+				if( nd.siblings && nd.siblings.length )
+				{
+					return nd;
+				}
+				else
+				{
+					return getRandomNote( hasSiblings, i+1 );
+				}
+			}
+			
+			return nd;
+		}
 	}
 }
