@@ -1,6 +1,6 @@
 ﻿/**
- * VERSION: 11.695
- * DATE: 2011-12-08
+ * VERSION: 11.698
+ * DATE: 2012-02-23
  * AS3 (AS2 version is also available)
  * UPDATES AND DOCS AT: http://www.greensock.com 
  **/
@@ -290,13 +290,13 @@ package com.greensock {
  * 	  to members. Learn more at <a href="http://www.greensock.com/club/">http://www.greensock.com/club/</a></li>
  * 	</ul>
  * 	  
- * <b>Copyright 2011, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
+ * <b>Copyright 2012, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
  * 
  * @author Jack Doyle, jack@greensock.com
  */
 	public class TweenMax extends TweenLite implements IEventDispatcher {
 		/** @private **/
-		public static const version:Number = 11.695;
+		public static const version:Number = 11.698;
 		
 		TweenPlugin.activate([
 			
@@ -549,7 +549,7 @@ package com.greensock {
 		 * @param force Normally the tween will skip rendering if the time matches the cachedTotalTime (to improve performance), but if force is true, it forces a render. This is primarily used internally for tweens with durations of zero in TimelineLite/Max instances.
 		 */
 		override public function renderTime(time:Number, suppressEvents:Boolean=false, force:Boolean=false):void {
-			var totalDur:Number = (this.cacheIsDirty) ? this.totalDuration : this.cachedTotalDuration, prevTime:Number = this.cachedTotalTime, isComplete:Boolean, repeated:Boolean, setRatio:Boolean;
+			var totalDur:Number = (this.cacheIsDirty) ? this.totalDuration : this.cachedTotalDuration, prevTime:Number = this.cachedTime, prevTotalTime:Number = this.cachedTotalTime, isComplete:Boolean, repeated:Boolean, setRatio:Boolean;
 			if (time >= totalDur) {
 				this.cachedTotalTime = totalDur;
 				this.cachedTime = this.cachedDuration;
@@ -566,9 +566,9 @@ package com.greensock {
 				if (time < 0) {
 					this.active = false;
 					if (this.cachedDuration == 0) { //zero-duration tweens are tricky because we must discern the momentum/direction of time in order to determine whether the starting values should be rendered or the ending values. If the "playhead" of its timeline goes past the zero-duration tween in the forward direction or lands directly on it, the end values should be rendered, but if the timeline's "playhead" moves past it in the backward direction (from a postitive time to a negative time), the starting values must be rendered.
-						if (_rawPrevTime > 0) {
+						if (_rawPrevTime >= 0) {
 							force = true;
-							isComplete = true;
+							isComplete = (_rawPrevTime > 0);
 						}
 						_rawPrevTime = time;
 					}
@@ -576,7 +576,7 @@ package com.greensock {
 					force = true;
 				}
 				this.cachedTotalTime = this.cachedTime = this.ratio = 0;
-				if (this.cachedReversed && prevTime != 0) {
+				if (this.cachedReversed && prevTotalTime != 0) {
 					isComplete = true;
 				}
 			} else {
@@ -618,7 +618,7 @@ package com.greensock {
 				
 			}
 			
-			if (prevTime == this.cachedTotalTime && !force) {
+			if (prevTime == this.cachedTime && !force) {
 				return;
 			} else if (!this.initted) {
 				init();
@@ -664,7 +664,7 @@ package com.greensock {
 				}
 			}
 			
-			if (prevTime == 0 && (this.cachedTotalTime != 0 || this.cachedDuration == 0) && !suppressEvents) {
+			if (prevTotalTime == 0 && (this.cachedTotalTime != 0 || this.cachedDuration == 0) && !suppressEvents) {
 				if (this.vars.onStart) {
 					this.vars.onStart.apply(null, this.vars.onStartParams);
 				}

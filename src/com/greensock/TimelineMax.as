@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.695
- * DATE: 2011-12-08
+ * VERSION: 1.698
+ * DATE: 2012-03-29
  * AS3 (AS2 version is also available)
  * UPDATES AND DOCS AT: http://www.greensock.com/timelinemax/
  **/
@@ -140,13 +140,13 @@ package com.greensock {
  * 	<li> TimelineMax adds about 4.9k to your SWF (not including OverwriteManager).</li>
  * </ul>
  * 
- * <b>Copyright 2011, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
+ * <b>Copyright 2012, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
  * 
  * @author Jack Doyle, jack@greensock.com
  **/
 	public class TimelineMax extends TimelineLite implements IEventDispatcher {
 		/** @private **/
-		public static const version:Number = 1.695;
+		public static const version:Number = 1.698;
 		
 		/** @private **/
 		protected var _repeat:int;
@@ -435,7 +435,7 @@ package com.greensock {
 			}
 			var totalDur:Number = (this.cacheIsDirty) ? this.totalDuration : this.cachedTotalDuration, prevTime:Number = this.cachedTime, prevTotalTime:Number = this.cachedTotalTime, prevStart:Number = this.cachedStartTime, prevTimeScale:Number = this.cachedTimeScale, tween:TweenCore, isComplete:Boolean, rendered:Boolean, repeated:Boolean, next:TweenCore, dur:Number, prevPaused:Boolean = this.cachedPaused;
 			if (time >= totalDur) {
-				if (prevTotalTime != totalDur && _rawPrevTime != time) {
+				if ((prevTotalTime != totalDur || this.cachedDuration == 0) && _rawPrevTime != time) {
 					this.cachedTotalTime = totalDur;
 					if (!this.cachedReversed && this.yoyo && _repeat % 2 != 0) {
 						this.cachedTime = 0;
@@ -535,7 +535,7 @@ package com.greensock {
 				
 			}
 			
-			if (this.cachedTotalTime == prevTotalTime && !force) {
+			if (this.cachedTime == prevTime && !force) {
 				return;
 			} else if (!this.initted) {
 				this.initted = true;
@@ -552,7 +552,7 @@ package com.greensock {
 			
 			if (rendered) {
 				//already rendered, so ignore
-			} else if (this.cachedTime - prevTime > 0) {
+			} else if (this.cachedTime > prevTime) {
 				tween = _firstChild;
 				while (tween) {
 					next = tween.nextNode; //record it here because the value could change after rendering...

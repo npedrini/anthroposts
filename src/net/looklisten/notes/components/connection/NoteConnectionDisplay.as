@@ -227,7 +227,7 @@ package net.looklisten.notes.components.connection
 			return notes;
 		}
 		
-		private function getNotesForWord(word:String):Array
+		public function getNotesForWord(word:String):Array
 		{
 			var notes:Array = new Array();
 			for(var i:int=0;i<_notesDisplay.nodes.numChildren;i++)
@@ -236,7 +236,7 @@ package net.looklisten.notes.components.connection
 				{
 					var nd:NoteDisplay = _notesDisplay.nodes.getChildAt(i) as NoteDisplay;
 					var noteWords:Array = _noteWords[nd.note.id];
-					if(noteWords!=null && noteWords.indexOf(word)>-1)
+					if(noteWords!=null && noteWords.indexOf(word.toLowerCase())>-1)
 						notes.push(nd.note.id);
 				}
 			}

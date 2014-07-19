@@ -56,6 +56,7 @@ package net.looklisten.notes.model
 		//	whether layout has been changed
 		public var layoutChanged:Boolean;
 		public var layoutDirty:Boolean;
+		public var layoutInitialized:Boolean;
 		
 		public var connections:ArrayCollection;
 		

@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.87
- * DATE: 2011-07-30
+ * VERSION: 1.8993
+ * DATE: 2012-02-24
  * AS3
  * UPDATES AND DOCS AT: http://www.greensock.com/loadermax/
  **/
@@ -37,7 +37,7 @@ package com.greensock.loading.core {
  * There is no reason to use this class on its own. Please see the documentation for the other classes.
  * <br /><br />
  * 
- * <b>Copyright 2011, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
+ * <b>Copyright 2012, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
  * 
  * @author Jack Doyle, jack@greensock.com
  */	
@@ -235,13 +235,14 @@ package com.greensock.loading.core {
 			if (isLoading) {
 				_time = getTimer() - _time;
 			}
-			if (_dispatchProgress && !suppressEvents && _status < LoaderStatus.FAILED) {
+			_cachedBytesLoaded = 0;
+			if (_status < LoaderStatus.FAILED) {
 				if (this is LoaderMax) {
 					_calculateProgress();
-				} else {
-					_cachedBytesLoaded = 0;
 				}
-				dispatchEvent(new LoaderEvent(LoaderEvent.PROGRESS, this));
+				if (_dispatchProgress && !suppressEvents) {
+					dispatchEvent(new LoaderEvent(LoaderEvent.PROGRESS, this));
+				}
 			}
 			if (!suppressEvents) {
 				if (isLoading) {

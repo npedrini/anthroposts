@@ -1,10 +1,5 @@
 package net.looklisten.notes.components
 {
-	//import caurina.transitions.Tweener;
-	
-	//import com.greensock.TweenLite;
-	//import com.greensock.events.TweenEvent;
-	
 	import com.greensock.TweenLite;
 	
 	import flash.display.Sprite;
@@ -239,15 +234,27 @@ package net.looklisten.notes.components
 			for(var i:int=0;i<_notesModel.notesFiltered.length;i++)
 			{
 				nd = nodes.getChildByName("nd"+_notesModel.notesFiltered[i].id) as NoteDisplay;
-				if(_notesModel.layoutChanged || _notesModel.layoutDirty){
-					
+				
+				if( _notesModel.layoutChanged || _notesModel.layoutDirty )
+				{
 					var x:Number = nd.default_x;
 					var y:Number = nd.default_y;
 					
-					nd.tweenTo( nd, { x:x, y:y, rotation:nd.default_rotation }, 500, "easeOutQuint", null, s_inc*i );
+					if( _notesModel.layoutInitialized )
+					{
+						nd.tweenTo( nd, { x:x, y:y, rotation:nd.default_rotation }, 500, "easeOutQuint", null, s_inc*i );
+					}
+					else
+					{
+						nd.x = nd.default_x;
+						nd.y = nd.default_y;
+						nd.rotation = nd.default_rotation;
+					}
 					
 					nd.setHeight(noteSize,true);					
-				}else{
+				}
+				else
+				{
 					nd.x = nd.default_x;
 					nd.y = nd.default_y;
 					nd.rotation = nd.default_rotation;
@@ -265,6 +272,7 @@ package net.looklisten.notes.components
 			if(connectionDisplay!=null && connectionDisplay.visible) connectionDisplay.invalidateDisplayList();
 			if(_notesModel.layoutChanged) _notesModel.layoutChanged = false;
 			if(_notesModel.layoutDirty) _notesModel.layoutDirty = false;
+			if( !_notesModel.layoutInitialized ) _notesModel.layoutInitialized = true;
 			
 			invalidateDisplayList();
 		}
@@ -618,6 +626,11 @@ package net.looklisten.notes.components
 			}
 			
 			return nd;
+		}
+		
+		public function get showingInfo():Boolean
+		{
+			return infoBox.visible;
 		}
 	}
 }

@@ -1,0 +1,7 @@
+.settings
+.wsdl
+
+bin-debug/
+bin-release/
+documents
+html-template

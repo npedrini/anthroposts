@@ -1,6 +1,6 @@
 /**
- * VERSION: 1.894
- * DATE: 2011-11-26
+ * VERSION: 1.901
+ * DATE: 2012-04-26
  * AS3
  * UPDATES AND DOCS AT: http://www.greensock.com/loadermax/
  **/
@@ -92,6 +92,7 @@ package com.greensock.loading {
  * 		<li><strong> bgAlpha : Number </strong> - Controls the alpha of the rectangle that is drawn when a <code>width</code> and <code>height</code> are defined.</li>
  * 		<li><strong> volume : Number</strong> - A value between 0 and 1 indicating the volume at which the video should play (default is 1).</li>
  * 		<li><strong> repeat : int</strong> - Number of times that the video should repeat. To repeat indefinitely, use -1. Default is 0.</li>
+ * 		<li><strong> stageVideo : StageVideo</strong> - By default, the NetStream gets attached to a <code>Video</code> object, but if you want to use StageVideo in Flash, you can define the <code>stageVideo</code> property and VideoLoader will attach its NetStream to that StageVideo instance instead of the regular Video instance (which is the <code>rawContent</code>). Please read Adobe's docs regarding StageVideo to understand the benefits, tradeoffs and limitations.</li>
  * 		<li><strong> checkPolicyFile : Boolean</strong> - If <code>true</code>, the VideoLoader will check for a crossdomain.xml file on the remote host (only useful when loading videos from other domains - see Adobe's docs for details about NetStream's <code>checkPolicyFile</code> property). </li>
  * 		<li><strong> estimatedDuration : Number</strong> - Estimated duration of the video in seconds. VideoLoader will only use this value until it receives the necessary metaData from the video in order to accurately determine the video's duration. You do not need to specify an <code>estimatedDuration</code>, but doing so can help make the playProgress and some other values more accurate (until the metaData has loaded). It can also make the <code>progress/bytesLoaded/bytesTotal</code> more accurate when a <code>estimatedDuration</code> is defined, particularly in <code>bufferMode</code>.</li>
  * 		<li><strong> deblocking : int</strong> - Indicates the type of filter applied to decoded video as part of post-processing. The default value is 0, which lets the video compressor apply a deblocking filter as needed. See Adobe's <code>flash.media.Video</code> class docs for details.</li>
@@ -107,7 +108,7 @@ package com.greensock.loading {
  * 		
  * 		<br /><br />----EVENT HANDLER SHORTCUTS----</li>
  * 		<li><strong> onOpen : Function</strong> - A handler function for <code>LoaderEvent.OPEN</code> events which are dispatched when the loader begins loading. Make sure your onOpen function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
- * 		<li><strong> onInit : Function</strong> - A handler function for <code>Event.INIT</code> events which will be called when the video's metaData has been received and the video is placed into the <code>ContentDisplay</code>. Make sure your onInit function accepts a single parameter of type <code>Event</code> (flash.events.Event).</li>
+ * 		<li><strong> onInit : Function</strong> - A handler function for <code>Event.INIT</code> events which will be called when the video's metaData has been received and the video is placed into the <code>ContentDisplay</code>. The <code>INIT</code> event can be dispatched more than once if the NetStream receives metaData more than once (which occasionally happens, particularly with F4V files - the first time often doesn't include the cuePoints). Make sure your <code>onInit</code> function accepts a single parameter of type <code>Event</code> (flash.events.Event).</li>
  * 		<li><strong> onProgress : Function</strong> - A handler function for <code>LoaderEvent.PROGRESS</code> events which are dispatched whenever the <code>bytesLoaded</code> changes. Make sure your onProgress function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>). You can use the LoaderEvent's <code>target.progress</code> to get the loader's progress value or use its <code>target.bytesLoaded</code> and <code>target.bytesTotal</code>.</li>
  * 		<li><strong> onComplete : Function</strong> - A handler function for <code>LoaderEvent.COMPLETE</code> events which are dispatched when the loader has finished loading successfully. Make sure your onComplete function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
  * 		<li><strong> onCancel : Function</strong> - A handler function for <code>LoaderEvent.CANCEL</code> events which are dispatched when loading is aborted due to either a failure or because another loader was prioritized or <code>cancel()</code> was manually called. Make sure your onCancel function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
@@ -186,7 +187,7 @@ function errorHandler(event:LoaderEvent):void {
 }
  </listing>
  * 
- * <b>Copyright 2011, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
+ * <b>Copyright 2010-2012, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
  * 
  * @see com.greensock.loading.data.VideoLoaderVars
  * 
@@ -220,6 +221,8 @@ function errorHandler(event:LoaderEvent):void {
 		/** @private **/
 		protected var _video:Video;
 		/** @private **/
+		protected var _stageVideo:Object; //don't type as StageVideo because that would break publishing to FP9
+		/** @private **/
 		protected var _sound:SoundTransform;
 		/** @private **/
 		protected var _videoPaused:Boolean;
@@ -247,6 +250,8 @@ function errorHandler(event:LoaderEvent):void {
 		protected var _dispatchPlayProgress:Boolean;
 		/** @private **/
 		protected var _prevTime:Number;
+		/** @private **/
+		protected var _prevCueTime:Number;
 		/** @private **/
 		protected var _firstCuePoint:CuePoint;
 		/** @private due to a bug in the NetStream class, we cannot seek() or pause() before the NetStream has dispatched a RENDER Event (or after 50ms for Flash Player 9). **/
@@ -314,6 +319,7 @@ function errorHandler(event:LoaderEvent):void {
 		 * 		<li><strong> bgAlpha : Number </strong> - Controls the alpha of the rectangle that is drawn when a <code>width</code> and <code>height</code> are defined.</li>
 		 * 		<li><strong> volume : Number</strong> - A value between 0 and 1 indicating the volume at which the video should play (default is 1).</li>
 		 * 		<li><strong> repeat : int</strong> - Number of times that the video should repeat. To repeat indefinitely, use -1. Default is 0.</li>
+		 * 		<li><strong> stageVideo : StageVideo</strong> - By default, the NetStream gets attached to a <code>Video</code> object, but if you want to use StageVideo in Flash, you can define the <code>stageVideo</code> property and VideoLoader will attach its NetStream to that StageVideo instance instead of the regular Video instance (which is the <code>rawContent</code>). Please read Adobe's docs regarding StageVideo to understand the benefits, tradeoffs and limitations.</li>		
 		 * 		<li><strong> checkPolicyFile : Boolean</strong> - If <code>true</code>, the VideoLoader will check for a crossdomain.xml file on the remote host (only useful when loading videos from other domains - see Adobe's docs for details about NetStream's <code>checkPolicyFile</code> property). </li>
 		 * 		<li><strong> estimatedDuration : Number</strong> - Estimated duration of the video in seconds. VideoLoader will only use this value until it receives the necessary metaData from the video in order to accurately determine the video's duration. You do not need to specify an <code>estimatedDuration</code>, but doing so can help make the playProgress and some other values more accurate (until the metaData has loaded). It can also make the <code>progress/bytesLoaded/bytesTotal</code> more accurate when a <code>estimatedDuration</code> is defined, particularly in <code>bufferMode</code>.</li>
 		 * 		<li><strong> deblocking : int</strong> - Indicates the type of filter applied to decoded video as part of post-processing. The default value is 0, which lets the video compressor apply a deblocking filter as needed. See Adobe's <code>flash.media.Video</code> class docs for details.</li>
@@ -329,7 +335,7 @@ function errorHandler(event:LoaderEvent):void {
 		 * 		
 		 * 		<br /><br />----EVENT HANDLER SHORTCUTS----</li>
 		 * 		<li><strong> onOpen : Function</strong> - A handler function for <code>LoaderEvent.OPEN</code> events which are dispatched when the loader begins loading. Make sure your onOpen function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
-		 * 		<li><strong> onInit : Function</strong> - A handler function for <code>Event.INIT</code> events which will be called when the video's metaData has been received and the video is placed into the <code>ContentDisplay</code>. Make sure your onInit function accepts a single parameter of type <code>Event</code> (flash.events.Event).</li>
+		 * 		<li><strong> onInit : Function</strong> - A handler function for <code>Event.INIT</code> events which will be called when the video's metaData has been received and the video is placed into the <code>ContentDisplay</code>. The <code>INIT</code> event can be dispatched more than once if the NetStream receives metaData more than once (which occasionally happens, particularly with F4V files - the first time often doesn't include the cuePoints). Make sure your <code>onInit</code> function accepts a single parameter of type <code>Event</code> (flash.events.Event).</li>
 		 * 		<li><strong> onProgress : Function</strong> - A handler function for <code>LoaderEvent.PROGRESS</code> events which are dispatched whenever the <code>bytesLoaded</code> changes. Make sure your onProgress function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>). You can use the LoaderEvent's <code>target.progress</code> to get the loader's progress value or use its <code>target.bytesLoaded</code> and <code>target.bytesTotal</code>.</li>
 		 * 		<li><strong> onComplete : Function</strong> - A handler function for <code>LoaderEvent.COMPLETE</code> events which are dispatched when the loader has finished loading successfully. Make sure your onComplete function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
 		 * 		<li><strong> onCancel : Function</strong> - A handler function for <code>LoaderEvent.CANCEL</code> events which are dispatched when loading is aborted due to either a failure or because another loader was prioritized or <code>cancel()</code> was manually called. Make sure your onCancel function accepts a single parameter of type <code>LoaderEvent</code> (<code>com.greensock.events.LoaderEvent</code>).</li>
@@ -356,6 +362,8 @@ function errorHandler(event:LoaderEvent):void {
 			//the video isn't decoded into memory fully until the NetStream is attached to the Video object. We only attach it when it is in the display list (thus can be seen) in order to conserve memory.
 			_video.addEventListener(Event.ADDED_TO_STAGE, _videoAddedToStage, false, 0, true);
 			_video.addEventListener(Event.REMOVED_FROM_STAGE, _videoRemovedFromStage, false, 0, true);
+			
+			_stageVideo = this.vars.stageVideo;
 			
 			_autoDetachNetStream = Boolean(this.vars.autoDetachNetStream == true);
 			
@@ -398,7 +406,7 @@ function errorHandler(event:LoaderEvent):void {
 				_ns.removeEventListener("asyncError", _failHandler);
 				_ns.removeEventListener(Event.RENDER, _renderHandler);
 			}
-			_prevTime = 0;
+			_prevTime = _prevCueTime = 0;
 			
 			_ns = (this.vars.netStream is NetStream) ? this.vars.netStream : new NetStream(_nc);
 			_ns.checkPolicyFile = Boolean(this.vars.checkPolicyFile == true);
@@ -410,7 +418,9 @@ function errorHandler(event:LoaderEvent):void {
 			
 			_ns.bufferTime = isNaN(this.vars.bufferTime) ? 5 : Number(this.vars.bufferTime);
 			
-			if (!_autoDetachNetStream || _video.stage != null) {
+			if (_stageVideo != null) {
+				_stageVideo.attachNetStream(_ns);
+			} else if (!_autoDetachNetStream || _video.stage != null) {
 				_video.attachNetStream(_ns);
 			}
 			
@@ -421,7 +431,7 @@ function errorHandler(event:LoaderEvent):void {
 		override protected function _load():void {
 			_prepRequest();
 			_repeatCount = 0;
-			_prevTime = 0;
+			_prevTime = _prevCueTime = 0;
 			_bufferFull = _playStarted = _renderedOnce = false;
 			this.metaData = null;
 			_pausePending = _videoPaused;
@@ -446,13 +456,16 @@ function errorHandler(event:LoaderEvent):void {
 		
 		/** @private scrubLevel: 0 = cancel, 1 = unload, 2 = dispose, 3 = flush **/
 		override protected function _dump(scrubLevel:int=0, newStatus:int=0, suppressEvents:Boolean=false):void {
+			if (_sprite == null) {
+				return; //already disposed!
+			}
 			_sprite.removeEventListener(Event.ENTER_FRAME, _loadingProgressCheck);
 			_sprite.removeEventListener(Event.ENTER_FRAME, _playProgressHandler);
 			_sprite.removeEventListener(Event.ENTER_FRAME, _detachNS);
 			_ns.removeEventListener(Event.RENDER, _renderHandler);
 			_renderTimer.stop();
 			_forceTime = NaN;
-			_prevTime = 0;
+			_prevTime = _prevCueTime = 0;
 			_initted = false;
 			_renderedOnce = false;
 			_videoComplete = false;
@@ -704,7 +717,7 @@ function errorHandler(event:LoaderEvent):void {
 		 * @see #playProgress
 		 **/
 		public function gotoVideoTime(time:Number, forcePlay:Boolean=false, skipCuePoints:Boolean=true):Number {
-			if (isNaN(time)) {
+			if (isNaN(time) || _ns == null) {
 				return NaN;
 			} else if (time > _duration) {
 				time = _duration;
@@ -716,8 +729,12 @@ function errorHandler(event:LoaderEvent):void {
 				_setForceTime(time);
 			}
 			_videoComplete = false;
-			if (changed && !skipCuePoints) {
-				_playProgressHandler(null);
+			if (changed) {
+				if (skipCuePoints) {
+					_prevCueTime = time;
+				} else {
+					_playProgressHandler(null);
+				}
 			}
 			if (forcePlay) {
 				playVideo();
@@ -725,6 +742,15 @@ function errorHandler(event:LoaderEvent):void {
 			return time;
 		}
 		
+		/** Clears the video from the rawContent (the Video object). This also works around a bug in Adobe's <code>Video</code> class that prevents clear() from working properly in some versions of the Flash Player (https://bugs.adobe.com/jira/browse/FP-178). Note that this does not detatch the NetStream - it simply deletes the currently displayed image/frame, so you'd want to make sure the video is paused or finished before calling <code>clearVideo()</code>. **/
+		public function clearVideo():void {
+			_video.smoothing = false; //a bug in Adobe's Video class causes it to not fully clear the video unless smoothing is set to false first. https://bugs.adobe.com/jira/browse/FP-178
+			_video.clear();
+			_video.smoothing = (this.vars.smoothing != false);
+			_video.clear(); //we need to call it a second time after the smoothing is changed, otherwise it doesn't work in some later versions of the player! 
+		}
+		
+		/** @protected **/
 		protected function _seek(time:Number):void {
 			_ns.seek(time);
 			_setForceTime(time);
@@ -772,7 +798,10 @@ function errorHandler(event:LoaderEvent):void {
 			_pausePending = false;
 			this.volume = _volume; //Just resets the volume to where it should be because we temporarily made it silent during the buffer.
 			_seek(_forceTime || 0);
-			if (!_autoDetachNetStream || _video.stage != null) {
+			if (_stageVideo != null) {
+				_stageVideo.attachNetStream(_ns);
+				_ns.pause();
+			} else if (!_autoDetachNetStream || _video.stage != null) {
 				_video.cacheAsBitmap = false; //works around an odd bug in Flash that can cause the video not to render when it is attached and paused immediately. 
 				_video.attachNetStream(_ns); //in case it was removed
 				_ns.pause(); //If we pause() the NetStream when it isn't attached to the _video, a bug in Flash causes it to act like it continues playing!!!
@@ -791,6 +820,8 @@ function errorHandler(event:LoaderEvent):void {
 			Object(_sprite).rawContent = _video; //resizes it appropriately
 			if (!_bufferFull && _pausePending && _renderedOnce && _video.stage != null) {
 				_video.attachNetStream(null); //if the NetStream is still buffering, there's a good chance that the video will appear to play briefly right before we pause it, so we detach the NetStream from the Video briefly to avoid that funky visual behavior (we attach it again as soon as it buffers).
+			} else if (_stageVideo != null) {
+				_stageVideo.attachNetStream(_ns);
 			} else if (!_autoDetachNetStream || _video.stage != null) {
 				_video.attachNetStream(_ns);
 			}
@@ -814,11 +845,10 @@ function errorHandler(event:LoaderEvent):void {
 			}
 			if (!_initted) {
 				_forceInit();
-				dispatchEvent(new LoaderEvent(LoaderEvent.INIT, this, "", info));
 			} else {
 				(_sprite as Object).rawContent = _video; //on rare occasions, _metaDataHandler() is called twice by the NeStream (particularly for F4V files) and the 2nd call contains more data than the first, so just in case the width/height changed, we set the rawContent of the ContentDisplay to make sure things render according to the correct size.
 			}
-			
+			dispatchEvent(new LoaderEvent(LoaderEvent.INIT, this, "", info));
 		}
 		
 		/** @private **/
@@ -830,17 +860,18 @@ function errorHandler(event:LoaderEvent):void {
 		
 		/** @private **/
 		protected function _playProgressHandler(event:Event):void {
-			if (!_bufferFull && !_videoComplete && _ns.bufferLength >= _ns.bufferTime) {
+			if (!_bufferFull && !_videoComplete && (_ns.bufferLength >= _ns.bufferTime || this.duration - this.videoTime - _ns.bufferLength < 0.1)) { //remember, bufferLength could be less than bufferTime if videoTime is towards the end of the video and there's less time remaining to play than there is bufferTime. 
 				_onBufferFull();
 			}
 			if (_bufferFull && (_firstCuePoint || _dispatchPlayProgress)) { 
-				var prevTime:Number = _prevTime;
-				_prevTime = ((_forceTime || _forceTime == 0) && _ns.time <= _duration) ? _ns.time : this.videoTime; //note: isNaN(_forceTime) is much slower than !(_forceTime || _forceTime == 0)
-				var next:CuePoint;
-				var cp:CuePoint = _firstCuePoint;
+				var prevTime:Number = _prevTime,
+					prevCueTime:Number = _prevCueTime;
+				_prevTime = _prevCueTime = ((_forceTime || _forceTime == 0) && _ns.time <= _duration) ? _ns.time : this.videoTime; //note: isNaN(_forceTime) is much slower than !(_forceTime || _forceTime == 0)
+				var next:CuePoint,
+					cp:CuePoint = _firstCuePoint;
 				while (cp) {
 					next = cp.next;
-					if (cp.time > prevTime && cp.time <= _prevTime && !cp.gc) {
+					if (cp.time > prevCueTime && cp.time <= _prevCueTime && !cp.gc) {
 						dispatchEvent(new LoaderEvent(VIDEO_CUE_POINT, this, "", cp));
 					}
 					cp = next;
@@ -972,13 +1003,15 @@ function errorHandler(event:LoaderEvent):void {
 				code == "NetStream.Play.FileStructureInvalid" || 
 				code == "The MP4 doesn't contain any supported tracks") {
 				if (this.vars.alternateURL != undefined && this.vars.alternateURL != "" && this.vars.alternateURL != _url) {
-					_url = this.vars.alternateURL;
-					_setRequestURL(_request, _url);
-					var request:URLRequest = new URLRequest();
-					request.data = _request.data;
-					_setRequestURL(request, _url, (!_isLocal || _url.substr(0, 4) == "http") ? "gsCacheBusterID=" + (_cacheID++) + "&purpose=audit" : "");
-					_auditNS.play(request.url);
 					_errorHandler(new LoaderEvent(LoaderEvent.ERROR, this, code));
+					if (_status != LoaderStatus.DISPOSED) { //it is conceivable that the user disposed the loader in an onError handler
+						_url = this.vars.alternateURL;
+						_setRequestURL(_request, _url);
+						var request:URLRequest = new URLRequest();
+						request.data = _request.data;
+						_setRequestURL(request, _url, (!_isLocal || _url.substr(0, 4) == "http") ? "gsCacheBusterID=" + (_cacheID++) + "&purpose=audit" : "");
+						_auditNS.play(request.url);
+					}
 					return;
 				} else {	
 					//note: a CANCEL event won't be dispatched because technically the loader wasn't officially loading - we were only briefly checking the bytesTotal with a NetStream.
@@ -993,16 +1026,16 @@ function errorHandler(event:LoaderEvent):void {
 		/** @private **/
 		override protected function _closeStream():void {
 			if (_auditNS != null) {
+				_auditNS.client = {};
+				_auditNS.removeEventListener(NetStatusEvent.NET_STATUS, _auditHandler);
+				_auditNS.removeEventListener("ioError", _auditHandler);
+				_auditNS.removeEventListener("asyncError", _auditHandler);
 				_auditNS.pause();
 				try {
 					_auditNS.close();
 				} catch (error:Error) {
 					
 				}
-				_auditNS.client = {};
-				_auditNS.removeEventListener(NetStatusEvent.NET_STATUS, _auditHandler);
-				_auditNS.removeEventListener("ioError", _auditHandler);
-				_auditNS.removeEventListener("asyncError", _auditHandler);
 				_auditNS = null;
 			} else {
 				super._closeStream();
@@ -1052,7 +1085,11 @@ function errorHandler(event:LoaderEvent):void {
 				if (!_pausePending) {
 					_seek(this.videoTime); //a bug in Flash prevents the video from rendering visually unless we seek() when we attachNetStream() 
 				}
-				_video.attachNetStream(_ns);
+				if (_stageVideo != null) {
+					_stageVideo.attachNetStream(_ns);
+				} else {
+					_video.attachNetStream(_ns);
+				}
 			}
 		}
 		
@@ -1107,7 +1144,9 @@ function errorHandler(event:LoaderEvent):void {
 				}
 			} else {
 				if (_pausePending || !_bufferFull) {
-					if (_video.stage != null) {
+					if (_stageVideo != null) {
+						_stageVideo.attachNetStream(_ns);
+					} else if (_video.stage != null) {
 						_video.attachNetStream(_ns); //in case we had to detach it while buffering and waiting for the metaData
 					}
 					//if we don't seek() first, sometimes the NetStream doesn't attach to the video properly!
@@ -1211,8 +1250,26 @@ function errorHandler(event:LoaderEvent):void {
 			if (_autoDetachNetStream && _video.stage == null) {
 				_video.attachNetStream(null);
 				_video.clear();
+			} else if (_stageVideo != null) {
+				_stageVideo.attachNetStream(_ns);
 			} else {
 				_video.attachNetStream(_ns);
+			}
+		}
+		
+		/** By default, the NetStream gets attached to a <code>Video</code> object, but if you want to use StageVideo in Flash, you can define the <code>stageVideo</code> object and VideoLoader will attach its NetStream to that StageVideo instance instead of the regular Video instance (which is the <code>rawContent</code>). Please read Adobe's docs regarding StageVideo to understand the tradeoffs and limitations. <strong>Note:</strong> the data type is <code>Object</code> instead of <code>StageVideo</code> in order to make VideoLoader compatible with Flash Player 9 and 10. Otherwise, you wouldn't be able to publish to those players because StageVideo was introduced in a later version. **/
+		public function get stageVideo():Object {
+			return _stageVideo;
+		}
+		public function set stageVideo(value:Object):void {
+			if (_stageVideo != value) {
+				_stageVideo = value;
+				if (_stageVideo != null) {
+					_stageVideo.attachNetStream(_ns);
+					_video.clear();
+				} else {
+					_video.attachNetStream(_ns);
+				}
 			}
 		}
 		

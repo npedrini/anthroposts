@@ -9,7 +9,7 @@
 	layout="absolute"
 	preloader="net.looklisten.components.preload.CustomPreloader" 
 	initialize="init()" 
-	mouseChildren="{!simplifyUI}">
+	mouseChildren="{!simplifyUI}" viewSourceURL="srcview/index.html">
 	
 	<mx:Style source="styles.css" />
 	
@@ -215,41 +215,51 @@
 					doUpdateView( viewID );
 				}
 				
-				else if( Timer(event.target).currentCount % Constants.KIOSK_INTERVAL_2 == 0 )
-				{
-					//	if similarity layout, show word
-					if( !_notesModel.maximizedNote
-						&& _notesModel.layout is SimilarityLayout )
-					{
-						if( list.connectionDisplay.focusedNoteDisplay )
-						{
-							list.connectionDisplay.onNoteRollOut( list.connectionDisplay.focusedNoteDisplay );
-						}
-						else
-						{
-							nd = list.getRandomNote( true );
-							
-							list.connectionDisplay.onNoteRollOver( nd );
-						}
-					}
-					
-					//	if not similarity layout and there is a maximized note, show word
-					else if( _notesModel.maximizedNote )
-					{
-						list.doNoteRollOver( _notesModel.maximizedNote );
-					}
-				}
-				
 				//	minimize/maximize note
 				else if( Timer(event.target).currentCount % Constants.KIOSK_INTERVAL_3 == 0 )
 				{
-					if( _notesModel.maximizedNote )
+					//	if similarity layout, show word
+					if( _notesModel.layout is SimilarityLayout
+						&& !_notesModel.maximizedNote 
+						&& !list.connectionDisplay.focusedNoteDisplay )
 					{
+						nd = list.getRandomNote( true );
+							
+						list.connectionDisplay.onNoteRollOver( nd );
+					}
+					
+					else if( _notesModel.maximizedNote
+							&& !list.showingInfo )
+					{
+						list.doNoteRollOver( _notesModel.maximizedNote );
+					}
+					else if( _notesModel.maximizedNote
+							&& list.showingInfo )
+					{						
+						if( _notesModel.layout is SimilarityLayout )
+						{
+							list.connectionDisplay.onNoteRollOut( _notesModel.maximizedNote );
+							
+							list.connectionDisplay.word = null;		
+							list.connectionDisplay.focusedNoteDisplay = null;
+						}
+						
 						list.hideNote(_notesModel.maximizedNote);
 					}
 					else
 					{
-						nd = list.getRandomNote();
+						if( _notesModel.layout is SimilarityLayout
+							&& list.connectionDisplay.focusedNoteDisplay )
+						{
+							var noteDisplays:Array = list.connectionDisplay.focusedNoteDisplay.siblings
+							var id:int = Math.round( Math.random() * ( noteDisplays.length - 1 ) );
+							
+							nd = noteDisplays[id];
+						}
+						else
+						{
+							nd = list.getRandomNote();
+						}
 						
 						list.showNote( nd );
 					}

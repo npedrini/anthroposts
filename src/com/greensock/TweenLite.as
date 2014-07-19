@@ -1,6 +1,6 @@
 ﻿/**
- * VERSION: 11.696
- * DATE: 2012-01-19
+ * VERSION: 11.698
+ * DATE: 2012-03-27
  * AS3 (AS2 version is also available)
  * UPDATES AND DOCS AT: http://www.greensock.com
  **/
@@ -235,7 +235,7 @@ package com.greensock {
 		}
 		
 		/** @private **/
-		public static const version:Number = 11.696;
+		public static const version:Number = 11.698;
 		/** @private When plugins are activated, the class is added (named based on the special property) to this object so that we can quickly look it up in the initTweenVals() method.**/
 		public static var plugins:Object = {}; 
 		/** @private **/
@@ -431,9 +431,9 @@ package com.greensock {
 				if (time < 0) {
 					this.active = false;
 					if (this.cachedDuration == 0) { //zero-duration tweens are tricky because we must discern the momentum/direction of time in order to determine whether the starting values should be rendered or the ending values. If the "playhead" of its timeline goes past the zero-duration tween in the forward direction or lands directly on it, the end values should be rendered, but if the timeline's "playhead" moves past it in the backward direction (from a postitive time to a negative time), the starting values must be rendered.
-						if (_rawPrevTime > 0) {
+						if (_rawPrevTime >= 0) {
 							force = true;
-							isComplete = true;
+							isComplete = (_rawPrevTime > 0);
 						}
 						_rawPrevTime = time;
 					}

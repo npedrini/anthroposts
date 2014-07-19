@@ -22,7 +22,7 @@ package com.greensock.loading.core {
  * Please see the documentation for the other classes.
  * <br /><br />
  * 
- * <b>Copyright 2011, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
+ * <b>Copyright 2012, GreenSock. All rights reserved.</b> This work is subject to the terms in <a href="http://www.greensock.com/terms_of_use.html">http://www.greensock.com/terms_of_use.html</a> or for corporate Club GreenSock members, the software agreement that was issued with the corporate membership.
  * 
  * @author Jack Doyle, jack@greensock.com
  */	
@@ -146,13 +146,15 @@ package com.greensock.loading.core {
 			} else if (event.type == "ioError" || event.type == "securityError") {
 				if (this.vars.alternateURL != undefined && this.vars.alternateURL != "" && this.vars.alternateURL != _url) {
 					_errorHandler(event);
-					_url = this.vars.alternateURL;
-					_setRequestURL(_request, _url);
-					var request:URLRequest = new URLRequest();
-					request.data = _request.data;
-					request.method = _request.method;
-					_setRequestURL(request, _url, (!_isLocal || _url.substr(0, 4) == "http") ? "gsCacheBusterID=" + (_cacheID++) + "&purpose=audit" : "");
-					_auditStream.load(request);
+					if (_status != LoaderStatus.DISPOSED) { //it is conceivable that the user disposed the loader in an onError handler
+						_url = this.vars.alternateURL;
+						_setRequestURL(_request, _url);
+						var request:URLRequest = new URLRequest();
+						request.data = _request.data;
+						request.method = _request.method;
+						_setRequestURL(request, _url, (!_isLocal || _url.substr(0, 4) == "http") ? "gsCacheBusterID=" + (_cacheID++) + "&purpose=audit" : "");
+						_auditStream.load(request);
+					}
 					return;
 				} else {	
 					//note: a CANCEL event won't be dispatched because technically the loader wasn't officially loading - we were only briefly checking the bytesTotal with a URLStream.
